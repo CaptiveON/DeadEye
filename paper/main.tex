@@ -8,7 +8,7 @@
 \usepackage{graphicx}
 \usepackage{xcolor}
 \usepackage{microtype}
-\usepackage[numbers,sort&compress]{natbib}
+\usepackage[authoryear,round,sort]{natbib}  % Harvard-style author-year citations
 \usepackage{hyperref}
 \hypersetup{colorlinks=true,linkcolor=blue!60!black,citecolor=blue!60!black,urlcolor=blue!60!black}
 \usepackage{caption}
@@ -39,7 +39,7 @@
 \input{sections/limitations}
 \input{sections/conclusion}
 
-\bibliographystyle{plainnat}
+\bibliographystyle{agsm}  % Harvard reference list (harvard package's agsm, natbib-compatible)
 \bibliography{refs}
 
 \appendix

@@ -22,7 +22,7 @@ class LoraSFTPolicy(Policy):
     needs_prepare = True
 
     def __init__(self, model: LanguageModel, prompt: PromptConfig, n_train_episodes: int = 40, oracle_mix: float = 0.7,
-                 infer: str = "score", max_train_states: int = 4000, seed: int = 0, lora: dict[str, Any] | None = None,
+                 infer: str = "score", max_train_states: int = 50000, seed: int = 0, lora: dict[str, Any] | None = None,
                  max_new_tokens: int = 16) -> None:
         super().__init__()
         if "train" not in model.capabilities:
@@ -54,7 +54,11 @@ class LoraSFTPolicy(Policy):
 
         rng = np.random.default_rng(self.seed)
         examples: list[tuple[list[Message], str]] = []
+        n_used = 0
         for seed in train_seeds[:self.n_train_episodes]:
+            if len(examples) >= self.max_train_states:
+                break
+            n_used += 1
             env = env_factory()
             obs = env.reset(seed)
             history: list[HistoryStep] = []
@@ -69,6 +73,7 @@ class LoraSFTPolicy(Policy):
                 history.append(HistoryStep(obs.text, action, res.reward))
                 obs = res.obs
         stats = train_lora_sft(self.model, examples, seed=self.seed, **self.lora)
+        stats.update(n_train_episodes_used=n_used, truncated=len(examples) >= self.max_train_states)
         return stats
 
     def act(self, obs: Observation, history: list[HistoryStep]) -> Decision:

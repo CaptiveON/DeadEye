@@ -50,6 +50,9 @@ def dump_json(obj: Any, path: Path) -> None:
         json.dump(obj, f, indent=2, default=_json_default)
 
 
+BASELINE_METHODS = {"random", "oracle", "ucb1"}
+
+
 @dataclass
 class Cell:
     env: EnvSpec
@@ -57,8 +60,14 @@ class Cell:
     model: ModelSpec | None  # None for baselines
 
     @property
+    def model_key(self) -> str:
+        if self.model is not None:
+            return self.model.key
+        return "_baseline" if self.method.name in BASELINE_METHODS else "_nomodel"
+
+    @property
     def path_parts(self) -> tuple[str, str, str]:
-        return self.env.key, (self.model.key if self.model else "_baseline"), self.method.key
+        return self.env.key, self.model_key, self.method.key
 
 
 def run_episode(env: Environment, policy: Policy, seed: int, illegal_action: str = "random_fallback",
@@ -233,6 +242,7 @@ class Runner:
             self._say(f"  skip (done) {'/'.join(cell.path_parts)}")
             return None
         env_factory: Callable[[], Environment] = lambda: make_env(cell.env.name, **cell.env.params)
+        train_factory: Callable[[], Environment] = lambda: make_env(cell.env.name, **cell.env.prep_params)
         env = env_factory()
         if model is not None:
             missing = required_capabilities(cell.method.name) - set(model.capabilities)
@@ -246,7 +256,7 @@ class Runner:
             return None
         policy.bind(env)
         t0 = time.perf_counter()
-        prepare_stats = policy.prepare(env_factory, self.cfg.train_seeds) if policy.needs_prepare else {}
+        prepare_stats = policy.prepare(train_factory, self.cfg.train_seeds) if policy.needs_prepare else {}
         prep_time = time.perf_counter() - t0
         seeds = self.cfg.episodes_for(cell.env)
         episodes: list[dict[str, Any]] = []
@@ -292,8 +302,9 @@ def summarize(cell: Cell, episodes: list[dict[str, Any]], model: LanguageModel |
     stds = {f"{k}_std": float(np.std([e[k] for e in episodes], ddof=1)) if len(episodes) > 1 else 0.0 for k in metric_keys}
     return {
         "env": cell.env.name, "env_key": cell.env.key, "env_params": cell.env.params,
-        "model_key": cell.model.key if cell.model else "_baseline",
-        "model": model.info.to_dict() if model is not None else {"id": "_baseline", "backend": "none", "params": None},
+        "model_key": cell.model_key,
+        "model": model.info.to_dict() if model is not None else {"id": cell.model_key, "backend": "none", "params": None},
+        "train_env_params": cell.env.prep_params,
         "model_spec": cell.model.spec if cell.model else None,
         "method": cell.method.name, "method_key": cell.method.key, "method_params": cell.method.params,
         "policy": policy.describe(),

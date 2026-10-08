@@ -1,1 +1,154 @@
-% benchmark: to be written (see RESEARCH_PLAN.md and docs/literature_review.md)
+\section{The \deadeye{} benchmark}
+\label{sec:benchmark}
+
+A \deadeye{} task is a generator of small decision problems, each fixed completely by a seed and each paired with an oracle. This section defines the tasks and the score, then the five ways we turn a language model into a policy, and finally what the harness records.
+
+\subsection{Decision tasks}
+\label{sec:bench:def}
+
+A task $\mathcal{T}$ maps a seed $\sigma\in\mathbb{N}$ to an episodic decision problem. Its generator $G_{\mathcal{T}}$ seeds a pseudo-random number generator with $\sigma$ and draws two things: hidden instance parameters $\xi_\sigma$, such as the arm means of a bandit, and all the exogenous randomness $\omega_\sigma$ the episode can ever consume, such as a table holding the reward of every arm in every round. Given these, an episode is a deterministic finite-horizon problem
+\begin{equation}
+M_\sigma = \bigl(\mathcal{S}, \mathcal{A}, \mathcal{A}(\cdot), s_0, f, r, H\bigr), \qquad
+s_{t+1} = f(s_t, a_t;\, \xi_\sigma, \omega_\sigma), \quad r_t = r(s_t, a_t;\, \xi_\sigma, \omega_\sigma),
+\end{equation}
+where $\mathcal{A}$ is the set of action labels, $\mathcal{A}(s)\subseteq\mathcal{A}$ the actions that are legal in state $s$, and $H$ a cap on the number of decisions. The episode ends in a terminal state or after $H$ decisions, and its return is $R(\pi,\sigma)=\sum_t r_t$. Before each decision the policy receives an observation $o_t=(x_t, \mathcal{A}(s_t), \phi(s_t))$: a text rendering $x_t$ of the state, the legal actions, and a numeric feature vector $\phi(s_t)$ that only the language-model-free control and the classical baselines use. Language-model policies also receive a fixed description of the rules. Every task has an oracle $\pi^\star(s;\xi_\sigma)$ that returns an optimal action, or a canonical near-optimal one where we say so.
+
+Because $\omega_\sigma$ is drawn before the first decision, two policies run on the same seed face identical potential outcomes: if both pull arm 3 in round 7 of seed 12, both receive the same reward. This is the method of common random numbers, and it makes every comparison in this paper a paired comparison over seeds.
+
+The oracles differ in what they know. On gridworld, tic-tac-toe and blackjack the oracle is a function of what the text shows, so a policy that reads the text perfectly can match it. On loan approval the oracle uses a default model that is the same in every instance; the text shows every input of that model but not its coefficients, which a policy has to bring as prior knowledge or learn from training seeds. On the two bandits the oracle knows the hidden arm means or weights. It is clairvoyant, no policy that learns from feedback can match it in expectation, and a normalized score of 1 is an upper bound rather than a target there; UCB1 provides a realizable reference on the bandit (Section~\ref{sec:bench:baselines}).
+
+\subsection{Normalized score}
+\label{sec:bench:score}
+
+Raw returns are not comparable across tasks, so we place them on a common scale anchored by two reference policies run on the same seeds:
+\begin{equation}
+\label{eq:norm}
+\norm(\pi,\sigma) = \frac{R(\pi,\sigma) - \bar R_{\mathrm{rand}}}{\bar R_{\mathrm{orc}} - \bar R_{\mathrm{rand}}},
+\qquad
+\bar R_{\mathrm{rand}} = \frac{1}{|\Sigma|}\sum_{\sigma\in\Sigma} R(\pi_{\mathrm{rand}},\sigma),
+\quad
+\bar R_{\mathrm{orc}} = \frac{1}{|\Sigma|}\sum_{\sigma\in\Sigma} R(\pi^\star,\sigma),
+\end{equation}
+where $\Sigma$ is the set of evaluation seeds and $\pi_{\mathrm{rand}}$ chooses a legal action uniformly at random. The anchors are means over $\Sigma$, so the random and the oracle policy average exactly 0 and 1, while a single episode can score below 0 or above 1. Every task configuration, for example the ten-armed bandit or the sign-flipped loan task, gets its own anchors from its own run. For each cell we report the mean and the interquartile mean of \norm{} over episodes with a bootstrap confidence interval, and we summarize a model and method by the unweighted mean over the six tasks. Because \norm{} is an affine function of return, it preserves every comparison that return supports; regret, success and win rates are reported alongside. One consequence of the scaling deserves attention: when the two anchors lie close together, as in blackjack, the per-episode spread of \norm{} is large, which matters for statistical power (Section~\ref{sec:setup:stats}).
+
+\subsection{Tasks}
+\label{sec:bench:tasks}
+
+Table~\ref{tab:tasks} summarizes the six tasks; Appendix~\ref{app:envs} lists every parameter and distribution, and Appendix~\ref{app:prompts} shows a prompt for each.
+
+\begin{table}[t]
+\centering\small
+\caption{The six tasks with the parameters of the main sweep. ``Decisions'' is the number of decisions per episode, which varies with the policy on the last three tasks.}
+\label{tab:tasks}
+\begin{tabularx}{\linewidth}{@{}l X X X r@{}}
+\toprule
+Task & Decision structure & Oracle & Headline metric & Decisions\\
+\midrule
+\texttt{bandit} & exploration and exploitation without state; 5 arms & best true arm (clairvoyant) & pseudo-regret & 50\\
+\texttt{contextual\_bandit} & learning an abstract rule in context; 3 options & best option for the context (clairvoyant) & regret & 30\\
+\texttt{loan} & one-shot tabular decisions with semantic features; shift variants & approve iff expected value is positive & profit, regret & 20\\
+\texttt{gridworld} & deterministic multi-step planning on a $6\times 6$ grid & first step of a shortest path & success, excess steps & ${\le}\,24$\\
+\texttt{tictactoe} & adversarial, perfect information & depth-aware minimax & win rate & ${\le}\,5$\\
+\texttt{blackjack} & risk under uncertainty; hit or stand & basic strategy & mean return & ${\ge}\,1$\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\paragraph{Multi-armed bandit (\texttt{bandit}).}
+The agent plays $K$ Bernoulli arms for $T$ rounds ($K=5$, $T=50$ in the main sweep; $K=10$, $T=100$ in a harder variant). Following \citet{krishnamurthy2024explore}, one arm $a^\star$, chosen uniformly, has mean $\mu_{a^\star}=0.5+\Delta/2$ and every other arm has $\mu_a=0.5-\Delta/2$, with gap $\Delta=0.2$. The generator pre-draws $Y_{t,a}\sim\mathrm{Bernoulli}(\mu_a)$ for every round and arm, and pulling arm $a_t$ in round $t$ pays $Y_{t,a_t}$. The observation gives the round number and, by default, a summary with the number of pulls and the average reward of each arm; the raw format lists the full history of (arm, reward) pairs instead. The oracle pulls $a^\star$ every round. The headline metric is pseudo-regret,
+\begin{equation}
+\mathrm{Reg}_T = \sum_{t=1}^{T}\bigl(\mu_{a^\star} - \mu_{a_t}\bigr),
+\end{equation}
+and we also log the fraction of suboptimal pulls and the share of the last ten pulls that went to $a^\star$. The feature vector holds each arm's share of past pulls and its empirical mean, set to 0.5 for arms not yet pulled.
+
+\paragraph{Contextual bandit (\texttt{contextual\_bandit}).}
+Each of $T=30$ rounds shows a context $x_t\in\mathbb{R}^d$ with $d=4$ and offers $A=3$ options. Hidden weights $w_a\sim\mathcal{N}(0,\sigma_w^2 I_d)$ with $\sigma_w=2$ are drawn for each episode, contexts are drawn from $\mathcal{N}(0,I_d)$ and rounded to two decimals, and option $a$ succeeds with probability
+\begin{equation}
+p_{t,a} = \operatorname{sigmoid}\bigl(w_a^\top x_t / \sqrt{d}\bigr),
+\end{equation}
+with outcomes again pre-drawn for every round and option. The observation shows the current context and the last ten rounds as (context, choice, reward) triples. The features have abstract names (\texttt{x1} to \texttt{x4}) and the weights change every episode, so prior knowledge cannot help: the only route above chance is to infer the rule from the history in the prompt. The oracle chooses $\arg\max_a p_{t,a}$, regret is $\sum_t\bigl(\max_a p_{t,a}-p_{t,a_t}\bigr)$, and the feature vector is the current context alone.
+
+\paragraph{Loan approval (\texttt{loan}).}
+An episode presents $N=20$ independent applicants, each with an age, an annual income $I$, a debt-to-income ratio $D$, a credit score $C$, years in current employment $E$, a requested amount $L$ and a loan purpose. Incomes and amounts are log-normal, the debt ratio follows a Beta$(2,5)$ distribution and credit scores are normal around 680. The probability that an applicant defaults is
+\begin{equation}
+\label{eq:loan}
+p = \operatorname{sigmoid}\Bigl(-1.2 + 2c\,\tfrac{C-680}{70} + 2.5\,(D-0.28) + 1.2\ln\bigl(1+L/I\bigr) - 0.08\min(E,15) + \rho_{\text{purpose}}\Bigr),
+\end{equation}
+with $c=-1$, so that a higher credit score lowers the risk, and a purpose offset $\rho$ between $-0.3$ (home improvement) and $+0.6$ (small business). Age is displayed but does not enter the model. Approving earns $rL$ with $r=0.12$ if the loan is repaid and loses $\lambda L$ with $\lambda=0.6$ on default; denying earns nothing; defaults are pre-drawn. The expected value of an approval is
+\begin{equation}
+\mathbb{E}[\text{approve}] = (1-p)\,rL - p\,\lambda L,
+\end{equation}
+so the oracle approves exactly when $p < r/(r+\lambda) = 1/6$. Each prompt states the gain and the loss in dollars, which reduces the decision to estimating $p$. The headline metrics are profit and the regret $\sum_i\bigl(\max(\mathbb{E}_i[\text{approve}],0)-\mathbb{E}_i[\text{chosen}]\bigr)$, where the chosen action's expected value is zero for a denial. Two variants test distribution shift with the same generator. Under covariate shift the median income falls from 55k to 35k dollars and the mean credit score from 680 to 600, with the default model unchanged. Under the sign flip $c=+1$: a higher credit score now raises the risk, and a model's prior knowledge points the wrong way. The feature vector holds the six numeric fields, standardized, and a one-hot purpose.
+
+\paragraph{Gridworld navigation (\texttt{gridworld}).}
+The agent walks on an $n\times n$ grid toward a goal ($n=6$ in the main sweep; $n=9$ with 16 walls in a larger variant). Start, goal and $n$ wall cells are distinct cells taken from a random permutation, and the instance is redrawn until the goal is reachable at a shortest-path distance $d^\star\ge n$. The legal actions are the moves among up, down, left and right that stay on the grid and avoid walls. Each move costs 0.02 and reaching the goal pays 1, so a successful episode of $t$ moves returns $1-0.02\,t$ and the oracle returns $1-0.02\,d^\star$; the episode stops at the goal or after $H=4n$ moves. The observation is an ASCII map with the coordinates of the agent and the goal. The oracle takes the first step of a breadth-first-search shortest path, breaking ties in the fixed order up, down, left, right. We report success and excess steps, $t-d^\star$ on success and $H-d^\star$ otherwise. The feature vector holds the normalized coordinates of agent and goal and the wall mask.
+
+\paragraph{Tic-tac-toe (\texttt{tictactoe}).}
+The agent plays a full game against a fixed opponent that moves uniformly at random in the main sweep and by minimax in a variant. It plays X, and moves first, on even seeds, and O on odd seeds. The board is shown with empty cells numbered 1 to 9, and the legal actions are the empty cells. A win pays $+1$, a draw 0 and a loss $-1$. The oracle is minimax with depth-aware values: a terminal win is worth $1+e$ and a loss $-(1+e)$, where $e$ is the number of empty cells left, so the oracle prefers fast wins and slow losses, and among equally valued moves it takes the lowest-numbered cell. No policy can beat the minimax opponent. The headline metric is the win rate, with draws and losses logged; the feature vector encodes the board from the agent's point of view.
+
+\paragraph{Blackjack (\texttt{blackjack}).}
+The agent plays single hands against a dealer under the Gymnasium convention \citep{towers2025gymnasium}: an infinite deck in which each card is drawn uniformly from $\{1,\dots,9,10,10,10,10\}$ (an ace, two to nine, and four ten-valued ranks), a dealer who draws to 17 and stands on soft 17, and a payout of 1.5 for a winning two-card 21. One ace counts as 11 whenever that does not take the hand over 21. The only actions are hit and stand; there is no doubling, splitting, surrender or insurance. Each seed pre-draws a stream of 64 cards from which player and dealer both draw, so every policy faces the same deck order. The oracle is the hit/stand basic-strategy table \citep{sutton2018rl}: with a hard total it stands on 17 or more, on 13 to 16 against a dealer card from 2 to 6, and on 12 against 4 to 6; with a soft total it stands on 19 or more and on soft 18 against 2 to 8. The table is near-optimal rather than exactly optimal for this hit/stand game. The headline metric is the mean return per hand, with win, loss and bust rates logged; the features are the hand total, a soft-hand flag and the dealer's up card.
+
+\subsection{Conversion methods}
+\label{sec:bench:methods}
+
+A conversion method turns a language model, or in one case no model at all, into a policy (Table~\ref{tab:methods}). All five share one prompt skeleton, so that two conditions differ only in the factor under study.
+
+\begin{table}[t]
+\centering\small
+\caption{The five conversion methods. Only \texttt{prompt\_generate} can produce an illegal action.}
+\label{tab:methods}
+\begin{tabularx}{\linewidth}{@{}l X X X@{}}
+\toprule
+Method & What it uses & Training data & Backends\\
+\midrule
+\texttt{prompt\_generate} & generated text, parsed into an action (zero-shot, few-shot or chain-of-thought) & none & \texttt{hf}, \texttt{openai}\\
+\texttt{prompt\_score} & log-likelihood of each legal label as a continuation of the prompt & none & \texttt{hf} (exact), \texttt{openai} (first token)\\
+\texttt{probe} & last-token hidden state at one layer, with a logistic-regression head & oracle-labeled states from training seeds & \texttt{hf}\\
+\texttt{lora\_sft} & LoRA adapters trained by behavior cloning, then exact scoring & the same states & \texttt{hf}\\
+\texttt{feature\_probe} & no language model: the same head on the task's numeric features & the same states & any\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\paragraph{Prompt skeleton.}
+The system message is the task description. The user message holds the observation text, a line \texttt{Legal actions:} that lists the legal labels, and an answer instruction. In the \emph{name} format the labels are the action names themselves (\texttt{arm\_3}, \texttt{left}, \texttt{7}). In the \emph{letter} format the legal actions receive the letters A, B, C and so on, in order, and one line per letter states its action. The instruction asks for a single line \texttt{Action: <label>} in generation mode, for at most three short sentences of reasoning followed by that line in chain-of-thought mode, and for the label alone in scoring mode. Few-shot demonstrations are complete user and assistant turns placed before the final user message; each shows a state from a training seed, reached after zero to four oracle steps, together with the oracle's action. Instruction-tuned checkpoints receive the messages through their chat template. Base checkpoints receive a plain rendering in which user and assistant turns are introduced by lines reading \texttt{Input:} and \texttt{Output:}, even if their tokenizer ships a chat template. The model sees its own past decisions only where the observation itself shows them, as in the bandit summaries and the contextual-bandit history. Appendix~\ref{app:prompts} reproduces every variant verbatim.
+
+\paragraph{Free-form generation (\texttt{prompt\_generate}).}
+The model decodes greedily up to 16 new tokens, 256 with chain-of-thought and 2048 for long thinking budgets. Greedy decoding overrides any repetition penalty that a checkpoint ships with, so base and instruct checkpoints decode the same way. A parser then maps the text to a label. It removes \texttt{<think>} blocks, including an unterminated block left when thinking exhausted the budget, and reads the last line of the form \texttt{Action: \ldots}, JSON-style lines included, whose content matches a legal label once quotes, brackets and punctuation are stripped. Single-character labels (letters and tic-tac-toe cells) must match exactly, apart from a leading word such as \emph{option} or \emph{cell}; longer labels may also match as a prefix, as a whole word, or by close spelling (a similarity ratio of at least 0.8). Without such a line the parser takes the last line that matches a label under the same rules and, for multi-character labels only, finally the last label mentioned anywhere in the text. Anything else is a format failure.
+
+\paragraph{Likelihood scoring (\texttt{prompt\_score}).}
+Scoring never asks the model to write anything. For each legal label $c$, tokenized on its own as $(c_1,\dots,c_m)$, the score is its log-probability as a continuation of the rendered prompt,
+\begin{equation}
+\label{eq:score}
+\ell(c) = \sum_{j=1}^{m} \log p_\theta\bigl(c_j \mid \text{prompt}, c_{<j}\bigr),
+\qquad
+\ell_{\mathrm{norm}}(c) = \ell(c)/m,
+\end{equation}
+and the policy takes $\arg\max_c \ell(c)$, or $\arg\max_c \ell_{\mathrm{norm}}(c)$ in the length-normalization ablation, with ties going to the first label. All labels are scored in one batched forward pass, following lm-evaluation-harness \citep{gao2023lmeval}. When the tokens of one label are a strict prefix of another's, as for \texttt{arm\_1} and \texttt{arm\_10} under a tokenizer that splits digits, every label is scored with an end-of-sequence token appended; otherwise the longer label could never win. The policy cannot produce an illegal action. Models behind an OpenAI-compatible API expose only the top log-probabilities of the first generated token, so for them each label is scored by its first token. That is exact only when the labels begin with distinct tokens, which is why we run such models with letter labels and report them separately.
+
+\paragraph{Hidden-state probe (\texttt{probe}).}
+The probe reads a decision from the model's representation of the prompt without generating anything. Let $h_\ell(x)$ be the hidden state of the last prompt token after block $\ell$ of a model with $B$ blocks, counting the embedding output as $\ell=0$. We use the middle layer, $\ell=\lfloor B/2\rfloor$, and the last layer, $\ell=B$, in an ablation. A multinomial logistic regression with an $L_2$ penalty (inverse strength $C=1$) is fitted on the standardized $h_\ell$ to predict the oracle's action. The training states come from the first $N_{\text{train}}$ training seeds, 100 in the main sweep and 10, 40 or 100 in the data-budget ablation. A behavior policy that takes the oracle's action with probability 0.7 and a uniformly random legal action otherwise visits them, so that states off the oracle's path are covered too; every visited state is labeled with the oracle's action, and collection stops at 4000 states. At decision time the probe takes the legal action with the highest predicted probability. It embeds the generation-mode prompt.
+
+\paragraph{LoRA behavior cloning (\texttt{lora\_sft}).}
+LoRA adapters \citep{hu2022lora} of rank 16 with scale $\alpha=32$ and dropout 0.05 are attached to every linear layer and trained for two epochs on the probe's training states, with AdamW, a learning rate of $2\times10^{-4}$, batch size 8, no weight decay and gradient norms clipped at 1. Each example is the scoring-mode prompt followed by the oracle's label and an end-of-sequence token, and the cross-entropy loss covers only those target tokens. After training the adapters are merged into the weights, except for 4-bit models, which are trained as QLoRA \citep{dettmers2023qlora} and kept unmerged. The policy then acts by exact scoring with the same prompt. Every LoRA cell starts from a fresh copy of the pre-trained weights.
+
+\paragraph{Feature probe (\texttt{feature\_probe}).}
+The control uses no language model. It is the same logistic regression, trained on the same states, with the task's feature vector $\phi(s)$ in place of $h_\ell$. What it controls for differs by task, and Section~\ref{sec:analysis:feature} discusses how to read it.
+
+\paragraph{Illegal actions.}
+Only free-form generation can fail to yield a legal action. When the output cannot be mapped to a legal label, the runner substitutes a legal action drawn uniformly at random, from a generator seeded by the episode seed, and marks the decision as illegal. The substituted action counts toward the return but never toward oracle agreement. The illegal-action rate, the share of decisions marked illegal, is a secondary outcome. The harness can instead take the first legal action or end the episode; we use random substitution throughout, so that a format failure is scored like an uninformed decision rather than a forfeit.
+
+\subsection{Baselines}
+\label{sec:bench:baselines}
+
+Three policies need no language model. The random policy draws a legal action uniformly, from one generator per cell. The oracle is $\pi^\star$. On the bandit we also run UCB1 \citep{auer2002ucb}, which pulls each arm once and afterwards the arm that maximizes
+\begin{equation}
+\hat\mu_a + \sqrt{2\ln(t+1)/n_a},
+\end{equation}
+where $t$ is the number of completed rounds, $n_a$ the number of pulls of arm $a$ and $\hat\mu_a$ its mean reward so far. UCB1 is the textbook reference, not the strongest algorithm for a 50-round horizon. Its normalized score, \result{[\norm{} of UCB1 on \texttt{bandit} with CI]}, marks what a non-clairvoyant learner with a regret guarantee achieves on this task.
+
+\subsection{Logging and provenance}
+\label{sec:bench:logs}
+
+A run crosses the task configurations, models and methods of a configuration file into cells, and evaluates each cell on every evaluation seed. Each cell writes three files to \texttt{results/<run>/<task>/<model>/<method>/}. The first, \texttt{summary.json}, holds the aggregates (mean and standard deviation of the return and of every task metric, illegal-action rate, oracle agreement, latency and prompt and completion tokens per decision) together with the full model and method specification, the model's precision and parameter count, the seeds, statistics from the training phase such as probe accuracy and LoRA loss before and after training, timings and the harness version. The second, \texttt{episodes.jsonl}, has one record per episode: seed, return, task metrics, illegal-action count, oracle agreement, latency and token counts. The third, \texttt{steps.jsonl}, has one record per decision: legal actions, the oracle's action, the parsed and the executed action, whether the decision was legal, the reward, latency, token counts, the raw model output truncated to 2000 characters, and method-specific extras such as the score of every label or the probe's class probabilities. Each run directory also holds \texttt{run\_manifest.json}, with the configuration, the list of cells, start and finish times, the Python, PyTorch and Transformers versions, whether CUDA was available and the GPU name. A cell whose summary already exists is skipped, so runs can be resumed and split across machines, and \texttt{deadeye report} rebuilds every result table and figure in this paper from these files.

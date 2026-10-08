@@ -2,8 +2,9 @@
 
 Rules follow the Gymnasium convention: infinite deck (cards 1-10, with 10 four times as likely),
 dealer hits below 17, a natural (two-card 21) pays 1.5. Only *hit* and *stand* are available so the
-oracle is the standard basic-strategy hit/stand table. Cards are pre-drawn per seed so all policies
-see the same card stream.
+oracle is the standard basic-strategy hit/stand table. Player and dealer cards come from two separate
+pre-drawn streams per seed, so a policy's hits never change the cards the dealer will draw and every
+policy faces the same dealer hand (tighter pairing across policies).
 """
 from __future__ import annotations
 
@@ -31,17 +32,23 @@ class BlackjackEnv(Environment):
         self.action_labels = ["hit", "stand"]
         self.max_steps = 12
 
-    def _draw(self) -> int:
-        card = DECK[int(self._stream[self._k])]
-        self._k += 1
+    def _draw_player(self) -> int:
+        card = DECK[int(self._pstream[self._pk])]
+        self._pk += 1
+        return card
+
+    def _draw_dealer(self) -> int:
+        card = DECK[int(self._dstream[self._dk])]
+        self._dk += 1
         return card
 
     def reset(self, seed: int) -> Observation:
         self._rng = np.random.default_rng(seed + 20_011)
-        self._stream = self._rng.integers(len(DECK), size=64)
-        self._k = 0
-        self.player = [self._draw(), self._draw()]
-        self.dealer = [self._draw(), self._draw()]
+        self._pstream = self._rng.integers(len(DECK), size=32)
+        self._dstream = self._rng.integers(len(DECK), size=32)
+        self._pk = self._dk = 0
+        self.player = [self._draw_player(), self._draw_player()]
+        self.dealer = [self._draw_dealer(), self._draw_dealer()]
         self._t = 0
         self._done = False
         self._outcome = 0.0
@@ -53,7 +60,7 @@ class BlackjackEnv(Environment):
         self._t += 1
         reward = 0.0
         if action == "hit":
-            self.player.append(self._draw())
+            self.player.append(self._draw_player())
             total, _ = hand_value(self.player)
             if total > 21:
                 self._done, self._bust, reward = True, True, -1.0
@@ -61,7 +68,7 @@ class BlackjackEnv(Environment):
             self._done = True
             ptotal, _ = hand_value(self.player)
             while hand_value(self.dealer)[0] < 17:
-                self.dealer.append(self._draw())
+                self.dealer.append(self._draw_dealer())
             dtotal, _ = hand_value(self.dealer)
             if dtotal > 21 or ptotal > dtotal:
                 reward = 1.0

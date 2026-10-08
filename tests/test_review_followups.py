@@ -1,0 +1,108 @@
+"""Tests for the follow-ups to the adversarial review."""
+import json
+
+import numpy as np
+
+from deadeye.config import RunConfig
+from deadeye.envs import make_env
+from deadeye.envs.tictactoe import expectimax, minimax
+from deadeye.policies import make_policy
+from deadeye.policies.registry import POLICY_REGISTRY
+from deadeye.policies.base import Decision, Policy
+from deadeye.runner import Runner, run_episode
+
+
+def _mean_return(opponent, mark, use_expectimax, seeds=200):
+    env = make_env("tictactoe", opponent=opponent, agent_mark=mark)
+    tot = []
+    for seed in range(seeds):
+        env.reset(seed)
+        while not env.done:
+            fn = expectimax(env.board, env.me)[1] if use_expectimax else minimax(env.board, env.me, env.me)[1]
+            env.step(str(int(fn) + 1))
+        tot.append(env._outcome)
+    return float(np.mean(tot))
+
+
+def test_expectimax_is_at_least_as_good_as_minimax_against_random():
+    for mark in ("X", "O"):
+        assert _mean_return("random", mark, True) >= _mean_return("random", mark, False) - 1e-9
+    assert _mean_return("random", "O", True) > _mean_return("random", "O", False)
+
+
+def test_oracle_vs_minimax_opponent_still_never_loses_and_varies_games():
+    env = make_env("tictactoe", opponent="minimax")
+    boards = set()
+    for seed in range(40):
+        env.reset(seed)
+        while not env.done:
+            env.step(env.oracle_action())
+        assert env.episode_metrics()["loss"] == 0.0
+        boards.add(env.board)
+    assert len(boards) >= 3
+
+
+def test_blackjack_dealer_cards_do_not_depend_on_player_hits():
+    env = make_env("blackjack")
+    env.reset(5)
+    env.step("stand")
+    dealer_a = list(env.dealer)
+    env.reset(5)
+    res = env.step("hit")
+    if not res.done:
+        env.step("stand")
+    dealer_b = list(env.dealer)
+    n = min(len(dealer_a), len(dealer_b))
+    assert dealer_a[:n] == dealer_b[:n]
+
+
+class _RecordingPolicy(Policy):
+    name = "_recording"
+    needs_prepare = True
+    seen: dict = {}
+
+    def prepare(self, env_factory, train_seeds):
+        _RecordingPolicy.seen = dict(env_factory().params)
+        return {"ok": True}
+
+    def act(self, obs, history):
+        return Decision(action=obs.legal_actions[0], raw_output="rec")
+
+
+def test_train_params_select_the_preparation_environment(tmp_path):
+    POLICY_REGISTRY["_recording"] = (_RecordingPolicy, False)
+    try:
+        cfg = RunConfig.from_dict({
+            "name": "t", "output_dir": str(tmp_path / "r"), "seeds": [0, 1], "catalog": None,
+            "envs": [{"name": "loan", "params": {"n_applicants": 3, "shift": "sign_flip"},
+                      "train_params": {"n_applicants": 3, "shift": "none"}, "label": "loan_flip"}],
+            "models": [{"backend": "mock", "id": "m"}], "methods": [{"name": "_recording"}], "baselines": ["random", "oracle"],
+        })
+        Runner(cfg).run()
+        assert _RecordingPolicy.seen["shift"] == "none"
+        summ = json.loads((tmp_path / "r" / "loan_flip" / "_nomodel" / "_recording" / "summary.json").read_text())
+        assert summ["train_env_params"] == {"n_applicants": 3, "shift": "none"} and summ["env_params"]["shift"] == "sign_flip"
+    finally:
+        POLICY_REGISTRY.pop("_recording", None)
+
+
+def test_feature_probe_appears_in_report(tmp_path):
+    from deadeye.report import build_report
+    cfg = RunConfig.from_dict({
+        "name": "t", "output_dir": str(tmp_path / "r"), "seeds": {"start": 0, "n": 3}, "train_seeds": {"start": 100, "n": 4},
+        "catalog": None, "envs": [{"name": "loan", "params": {"n_applicants": 4}}],
+        "models": [{"backend": "mock", "id": "m", "params": 10, "family": "mock"}],
+        "methods": [{"name": "prompt_score"}, {"name": "feature_probe", "params": {"n_train_episodes": 4}}],
+    })
+    Runner(cfg).run()
+    res = build_report([str(tmp_path / "r")], tmp_path / "rep")
+    cells = res["cells"]
+    assert "_nomodel" in set(cells["model_key"]) and "feature_probe" in res["tables"]
+    assert "no LM (task features)" in res["tables"]["feature_probe"].index[0]
+    assert not np.isnan(cells[cells["method"] == "feature_probe"]["norm_mean"].iloc[0])
+
+
+def test_probe_reports_episodes_used_and_truncation():
+    pol = make_policy("feature_probe", {"n_train_episodes": 5, "max_train_states": 7})
+    stats = pol.prepare(lambda: make_env("loan", n_applicants=4), list(range(100000, 100010)))
+    assert stats["n_train_episodes_used"] == 2 and stats["truncated"] and stats["n_train_states"] == 7

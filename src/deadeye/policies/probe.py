@@ -22,7 +22,7 @@ from deadeye.policies.prompts import PromptConfig, build_messages
 class _ProbeBase(Policy):
     needs_prepare = True
 
-    def __init__(self, n_train_episodes: int = 40, oracle_mix: float = 0.7, C: float = 1.0, max_train_states: int = 4000,
+    def __init__(self, n_train_episodes: int = 40, oracle_mix: float = 0.7, C: float = 1.0, max_train_states: int = 50000,
                  seed: int = 0) -> None:
         super().__init__()
         self.n_train_episodes = int(n_train_episodes)
@@ -45,7 +45,11 @@ class _ProbeBase(Policy):
         rng = np.random.default_rng(self.seed)
         X, y = [], []
         t0 = time.perf_counter()
+        n_used = 0
         for seed in train_seeds[:self.n_train_episodes]:
+            if len(X) >= self.max_train_states:
+                break
+            n_used += 1
             env = env_factory()
             obs = env.reset(seed)
             history: list[HistoryStep] = []
@@ -67,8 +71,9 @@ class _ProbeBase(Policy):
         else:
             self.clf = LogisticRegression(C=self.C, max_iter=2000).fit(Xs, y)
         train_acc = float(np.mean(self.clf.predict(Xs) == np.array(y))) if self.clf is not None else 1.0
-        return {"n_train_states": len(y), "n_classes": len(self.classes), "train_acc": train_acc,
-                "feature_dim": int(Xa.shape[1]), "prepare_time_s": time.perf_counter() - t0}
+        return {"n_train_states": len(y), "n_train_episodes_used": n_used, "truncated": len(y) >= self.max_train_states,
+                "n_classes": len(self.classes), "train_acc": train_acc, "feature_dim": int(Xa.shape[1]),
+                "prepare_time_s": time.perf_counter() - t0}
 
     def act(self, obs: Observation, history: list[HistoryStep]) -> Decision:
         assert self.env is not None

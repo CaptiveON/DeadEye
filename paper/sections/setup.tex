@@ -1,1 +1,93 @@
-% setup: to be written (see RESEARCH_PLAN.md and docs/literature_review.md)
+\section{Experimental setup}
+\label{sec:setup}
+
+\subsection{Model ladders}
+\label{sec:setup:models}
+
+A scale effect means something only within a family trained with one recipe, so we evaluate ladders rather than a collection of popular models (Table~\ref{tab:ladders}). Qwen2.5 \citep{qwen2024qwen25} is the primary ladder: seven dense sizes from 0.5B to 72B, released together, with base and instruct checkpoints at every size. Qwen3 \citep{yang2025qwen3,qwen2025qwen3github} adds six dense sizes whose post-trained checkpoints switch thinking on and off inside the same weights; its base checkpoints stop at 14B. SmolLM2 \citep{allal2025smollm2} and Gemma 3 \citep{gemma2025gemma3} extend the low end to 135M and 270M parameters. Two fully open ladders serve as controls in a separate configuration: Pythia \citep{biderman2023pythia}, eight base-only sizes trained on the same data in the same order, and OLMo 2 \citep{olmo2025olmo2}, with open data and base and instruct checkpoints.
+
+We leave out ladders that put different kinds of model on one axis. Llama 3.x sizes come from separate releases \citep{grattafiori2024llama3,meta2025llamamodels}; the Gemma 3n and Gemma 4 rungs mix effective, mixture-of-experts and dense parameter counts \citep{google2025gemma3n,google2026gemma4}; and the DeepSeek-R1 distillations sit on different base models \citep{deepseekai2025r1}. Newer ladders such as Qwen3.5 \citep{qwen2026github}, Olmo 3 \citep{olmo2025olmo3}, SmolLM3 \citep{hf2025smollm3} and Ministral 3 \citep{mistral2025mistral3} can be added through the model catalogue once their repository identifiers are verified.
+
+\begin{table}[t]
+\centering\small
+\caption{Model ladders. ``Released'' lists the checkpoints that exist and ``Run'' those that our configurations evaluate. Weights are bfloat16 unless marked int4 (4-bit NF4). Appendix~\ref{app:ladders} gives the verified repository identifiers.}
+\label{tab:ladders}
+\begin{tabularx}{\linewidth}{@{}l X X X X@{}}
+\toprule
+Family & Sizes & Released & Run & License\\
+\midrule
+Qwen2.5 & 0.5B, 1.5B, 3B, 7B, 14B, 32B, 72B & base and instruct at every size & base and instruct up to 14B; instruct at 32B and 72B (int4) & Apache-2.0; 3B under the Qwen Research License, 72B under the Qwen License\\
+Qwen3 & 0.6B, 1.7B, 4B, 8B, 14B, 32B & post-trained at every size; base up to 14B & post-trained with thinking off (32B in int4); thinking on at 4B and 8B & Apache-2.0\\
+SmolLM2 & 135M, 360M, 1.7B & base and instruct & instruct & Apache-2.0\\
+Gemma 3 & 270M, 1B, 4B, 12B, 27B & pre-trained and instruct & instruct (27B in int4) & Gemma Terms of Use\\
+Pythia & 70M, 160M, 410M, 1B, 1.4B, 2.8B, 6.9B, 12B & base only & deduplicated base & Apache-2.0\\
+OLMo 2 & 1B, 7B, 13B, 32B & base and instruct & base and instruct up to 13B; instruct at 32B (int4) & Apache-2.0\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Models up to 14B run in bfloat16. The largest rungs (Qwen2.5 32B and 72B, Qwen3 32B, Gemma 3 27B and OLMo 2 32B) are loaded with 4-bit NF4 weights through bitsandbytes \citep{dettmers2023qlora}, so the top of each ladder mixes scale with quantization; Section~\ref{sec:res:h5} measures the cost of 4-bit weights at sizes where both precisions fit, and every table marks the precision of each row. The parameter axis is the total parameter count from the model catalogue, which quantized rows report as well. Embeddings take a large share of the smallest models, about a quarter of Qwen2.5-0.5B's 0.49B parameters according to its model card, and more in models with large vocabularies, so we repeat the slope fits with non-embedding counts where they are published. \todo{The catalogue (configs/models.yaml) has no non\_embedding\_params values yet; fill them from docs/model\_ladders.md. RESEARCH\_PLAN.md promises base checkpoints at all seven Qwen2.5 sizes, but configs/sweep\_gpu.yaml has none at 32B or 72B; add them or restrict H2 to 0.5B to 14B.}
+
+\subsection{Factors and levels}
+\label{sec:setup:factors}
+
+Table~\ref{tab:factors} lists the factors we vary. The main sweep crosses the ladders with six method configurations (generation, generation with chain-of-thought, scoring, probe, LoRA and the feature probe) on the six tasks. The control configuration does the same for Pythia and OLMo 2 without chain-of-thought. The ablation configuration varies one factor at a time on Qwen2.5-Instruct at 1.5B, 7B and 14B, in three precisions, and on Qwen3 at 4B and 8B with thinking on and off, over twelve task configurations; the history-format, quantization and thinking comparisons all come from it.
+
+\begin{table}[t]
+\centering\small
+\caption{Factors, their levels in the configuration files, and the hypotheses they test. ``Sweep'', ``controls'' and ``ablations'' are \texttt{configs/sweep\_gpu.yaml}, \texttt{configs/sweep\_controls.yaml} and \texttt{configs/ablations.yaml}.}
+\label{tab:factors}
+\begin{tabularx}{\linewidth}{@{}l X l l@{}}
+\toprule
+Factor & Levels & Configuration & Tests\\
+\midrule
+Parameter count & Qwen2.5 0.5B to 72B; Qwen3 0.6B to 32B; SmolLM2 135M to 1.7B; Gemma 3 270M to 27B; Pythia 70M to 12B; OLMo 2 1B to 32B & sweep, controls & H1\\
+Instruction tuning & base vs.\ instruct at equal size: Qwen2.5 0.5B to 14B; OLMo 2 1B to 13B & sweep, controls & H2\\
+Conversion method & \texttt{prompt\_generate}, \texttt{prompt\_score}, \texttt{probe}, \texttt{lora\_sft}, \texttt{feature\_probe} & all & H3, H4\\
+Quantization & bf16, int8 and int4 at 1.5B and 7B; bf16 and int4 at 14B & ablations & H5\\
+History format & bandit history as a per-arm summary vs.\ the raw list & ablations & H6\\
+Reasoning budget & direct answer (16 tokens) vs.\ chain-of-thought (256); Qwen3 thinking off vs.\ on (up to 2048 tokens) & sweep, ablations & H7\\
+Prompt details & names vs.\ letters; 0 vs.\ 3 demonstrations; temperature 0 vs.\ 0.7; raw vs.\ length-normalized scores & ablations & secondary\\
+Adaptation data & probe and LoRA trained on 10, 40 or 100 episodes & ablations & H3\\
+Task difficulty & 5 vs.\ 10 arms; grid 6 vs.\ 9; random vs.\ minimax opponent; loan shift none, covariate or sign flip & ablations & H1, H3\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Seeds and data splits}
+\label{sec:setup:seeds}
+
+Evaluation uses seeds 0 to 99 for every task configuration except blackjack, which uses seeds 0 to 299 because single hands are noisy. Probe and LoRA training states and few-shot demonstrations come only from seeds 100000 to 100099, and the harness rejects any configuration in which training and evaluation seeds overlap. Every model and method sees the same evaluation seeds, so all comparisons within a task configuration are paired. The CPU pilot, in which prompts are debugged, evaluates seeds 0 to 19 with training seeds 100000 to 100039. \todo{The pilot seeds 0 to 19 are a subset of the confirmatory seeds 0 to 99. Either move the pilot to disjoint seeds before the tag, or add the confirmatory tests restricted to seeds 20 to 99 as a sensitivity analysis.}
+
+\subsection{Hardware and software}
+\label{sec:setup:hw}
+
+\todo{From run\_manifest.json and the environment: GPU model and count, driver and CUDA versions, and the Python, PyTorch, Transformers, PEFT, bitsandbytes and scikit-learn versions. The manifest records PyTorch and Transformers versions, CUDA availability and the GPU name, but not the CUDA, PEFT, bitsandbytes or scikit-learn versions.} With greedy decoding and seeded instances, \texttt{prompt\_score}, \texttt{probe} and greedy \texttt{prompt\_generate} reproduce bit for bit on the same hardware and library versions; across hardware we expect agreement within confidence intervals, not identical values. Latencies are wall-clock times of the model's forward passes per decision on this hardware.
+
+\subsection{Statistical protocol}
+\label{sec:setup:stats}
+
+The unit of analysis is the episode. The primary outcome is the normalized score \norm{} of Equation~\eqref{eq:norm}; the secondary outcomes are the illegal-action rate, oracle agreement, the task metrics, and latency and tokens per decision. For each cell we report the mean and the interquartile mean of \norm{} over episodes and a 95\% percentile bootstrap interval from 2000 resamples of episodes \citep{agarwal2021precipice}.
+
+Two cells of the same task configuration are compared through the paired differences $\delta_\sigma=\norm(\pi_A,\sigma)-\norm(\pi_B,\sigma)$ over their shared seeds. The test statistic is $|\bar\delta|$, its null distribution comes from 5000 random sign flips of the $\delta_\sigma$, and the two-sided $p$-value is $(1+\#\{k: |\bar\delta^{(k)}|\ge|\bar\delta|\})/5001$. Effect sizes are paired Cohen's $d=\bar\delta/\operatorname{sd}(\delta)$. Within each hypothesis, the tests named in its pre-registered criterion form one family and are corrected with Holm's step-down procedure. \todo{deadeye report applies Holm across all rows of pairwise\_methods.csv, and deadeye compare reports unadjusted p-values; apply Holm per hypothesis family when filling Section~\ref{sec:results}.}
+
+Scale is summarized by the least-squares fit
+\begin{equation}
+\label{eq:slope}
+\bar{s}_c = a + b\,\log_{10} N_c
+\end{equation}
+over the cells $c$ of one family, method and task, where $\bar s_c$ is the cell mean of \norm{} and $N_c$ the parameter count; $b$ is the change in normalized score per tenfold increase in parameters. Confidence intervals for $b$, for differences of slopes (H1b) and for ratios of slopes (H4b) come from refitting after resampling episodes within every cell, 2000 times. \todo{Slope fits are not yet part of deadeye report; compute them from report/<run>/episodes.csv.}
+
+The smallest effect of interest is $\Delta=0.10$ in \norm{}. For a paired comparison in which the per-episode differences have standard deviation $\sigma_\delta$, the number of episodes needed for power $1-\beta$ at level $\alpha$ is
+\begin{equation}
+\label{eq:power}
+n = \Bigl\lceil \bigl((z_{1-\alpha/2}+z_{1-\beta})\,\sigma_\delta/\Delta\bigr)^2 \Bigr\rceil,
+\end{equation}
+which \texttt{deadeye.metrics.episodes\_needed} implements. With $\alpha=0.05$ and power 0.8 this gives 32 episodes at $\sigma_\delta=0.2$ and 126 at $\sigma_\delta=0.4$, so 100 episodes suffice when $\sigma_\delta$ is at most about 0.36. The pilot estimates of $\sigma_\delta$ are \result{[per-task SD of paired differences from the pilot]}. Tasks whose anchors lie close together have a much larger per-episode spread of \norm{}. For blackjack the per-hand standard deviation of the return is close to 1, so the standard deviation of \norm{} is roughly the reciprocal of the anchor span \result{[span $\bar R_{\mathrm{orc}}-\bar R_{\mathrm{rand}}$ on blackjack]}, and even 300 hands may detect only differences larger than 0.10 \result{[minimum detectable difference on blackjack at power 0.8]}. \todo{docs/preregistration.md (Section 5) states that 100 episodes give power 0.8 whenever the SD is at most 0.40; by Equation~\eqref{eq:power} this holds only up to about 0.36. Reconcile before tagging prereg-v1.}
+
+A cell is excluded only if its model fails to load or its run crashes, never because of its outcome, and Appendix~\ref{app:prereg} lists every excluded cell.
+
+\subsection{Pre-registration}
+\label{sec:setup:prereg}
+
+The hypotheses, predictions and falsification criteria (Appendix~\ref{app:prereg}) are written before the main sweep and frozen, together with the prompts and the analysis code, at the git tag \texttt{prereg-v1}, which is created after the CPU pilot. Prompts may change only during the pilot and only against pilot seeds. Every run after the tag is confirmatory, and any departure from the frozen design is recorded with its date and reason in the deviations table of \texttt{docs/preregistration.md} and in Appendix~\ref{app:prereg}. \todo{Commit hash and date of the prereg-v1 tag; deviations, if any.}

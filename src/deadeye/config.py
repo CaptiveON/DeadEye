@@ -37,6 +37,13 @@ class EnvSpec:
     params: dict[str, Any] = field(default_factory=dict)
     n_episodes: int | None = None
     label: str | None = None
+    #: Environment parameters for the preparation phase (probe/LoRA training, few-shot demos). Defaults to
+    #: ``params``; set it to the in-distribution variant when ``params`` describes a shifted (OOD) evaluation.
+    train_params: dict[str, Any] | None = None
+
+    @property
+    def prep_params(self) -> dict[str, Any]:
+        return self.params if self.train_params is None else self.train_params
 
     @property
     def key(self) -> str:
@@ -87,7 +94,8 @@ class RunConfig:
 
     @classmethod
     def from_dict(cls, d: dict[str, Any], base_dir: Path | None = None) -> "RunConfig":
-        envs = [EnvSpec(name=e["name"], params=dict(e.get("params") or {}), n_episodes=e.get("n_episodes"), label=e.get("label"))
+        envs = [EnvSpec(name=e["name"], params=dict(e.get("params") or {}), n_episodes=e.get("n_episodes"), label=e.get("label"),
+                        train_params=dict(e["train_params"]) if e.get("train_params") is not None else None)
                 for e in d.get("envs", [])]
         models = [ModelSpec(spec={k: v for k, v in m.items() if k != "label"}, label=m.get("label")) for m in d.get("models", [])]
         methods = [MethodSpec(name=m["name"], params=dict(m.get("params") or {}), label=m.get("label")) for m in d.get("methods", [])]

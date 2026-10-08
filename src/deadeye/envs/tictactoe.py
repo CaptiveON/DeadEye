@@ -1,8 +1,10 @@
 """Tic-tac-toe against a fixed opponent: adversarial decision-making with perfect information.
 
-Cells are numbered 1-9 left-to-right, top-to-bottom. The oracle is minimax with a preference for
-faster wins / slower losses, with deterministic tie-breaking. Against a random opponent the oracle
-wins most games; against the minimax opponent the best achievable outcome is a draw.
+Cells are numbered 1-9 left-to-right, top-to-bottom. Against the random opponent the oracle is
+expectimax (it maximises the expected outcome against uniformly random replies, which minimax does
+not do, especially when playing O); against the minimax opponent the oracle is minimax, and the best
+achievable outcome is a draw. The minimax opponent breaks ties between equally valued moves at random
+(seeded) so that a deterministic policy meets a variety of games.
 """
 from __future__ import annotations
 
@@ -43,6 +45,42 @@ def minimax(board: tuple[str, ...], player: str, me: str) -> tuple[float, int | 
         if best_val is None or (player == me and val > best_val) or (player != me and val < best_val):
             best_val, best_move = val, i
     return best_val, best_move
+
+
+def _terminal(w: str, me: str) -> float:
+    return 0.0 if w == "draw" else (1.0 if w == me else -1.0)
+
+
+@lru_cache(maxsize=None)
+def expectimax(board: tuple[str, ...], me: str) -> tuple[float, int | None]:
+    """Value and best move for `me` (to move) against an opponent that plays uniformly at random."""
+    w = winner(board)
+    if w is not None:
+        return _terminal(w, me), None
+    best_val, best_move = None, None
+    for i, cell in enumerate(board):
+        if cell != ".":
+            continue
+        nb = board[:i] + (me,) + board[i + 1:]
+        v = _random_reply_value(nb, me)
+        if best_val is None or v > best_val + 1e-12:
+            best_val, best_move = v, i
+    return best_val, best_move
+
+
+@lru_cache(maxsize=None)
+def _random_reply_value(board: tuple[str, ...], me: str) -> float:
+    w = winner(board)
+    if w is not None:
+        return _terminal(w, me)
+    other = "O" if me == "X" else "X"
+    vals = []
+    for i, cell in enumerate(board):
+        if cell != ".":
+            continue
+        nb = board[:i] + (other,) + board[i + 1:]
+        vals.append(expectimax(nb, me)[0])
+    return sum(vals) / len(vals)
 
 
 class TicTacToeEnv(Environment):
@@ -88,8 +126,17 @@ class TicTacToeEnv(Environment):
             empties = [i for i, c in enumerate(self.board) if c == "."]
             self._place(int(self._rng.choice(empties)), self.opp)
         elif self.opponent == "minimax":
-            _, mv = minimax(self.board, self.opp, self.opp)
-            self._place(int(mv), self.opp)
+            best_val, best_moves = None, []
+            for i, c in enumerate(self.board):
+                if c != ".":
+                    continue
+                nb = self.board[:i] + (self.opp,) + self.board[i + 1:]
+                val, _ = minimax(nb, self.me, self.opp)
+                if best_val is None or val > best_val + 1e-9:
+                    best_val, best_moves = val, [i]
+                elif abs(val - best_val) <= 1e-9:
+                    best_moves.append(i)
+            self._place(int(self._rng.choice(best_moves)), self.opp)
         else:
             raise ValueError(f"unknown opponent {self.opponent!r}")
 
@@ -114,7 +161,10 @@ class TicTacToeEnv(Environment):
         return StepResult(self._obs(), reward, self._done, {"winner": w})
 
     def oracle_action(self) -> str:
-        _, mv = minimax(self.board, self.me, self.me)
+        if self.opponent == "random":
+            _, mv = expectimax(self.board, self.me)
+        else:
+            _, mv = minimax(self.board, self.me, self.me)
         return str(int(mv) + 1)
 
     def episode_metrics(self) -> dict[str, float]:

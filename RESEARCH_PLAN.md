@@ -273,8 +273,11 @@ edit. See `docs/compute_budget.md`.
    variants are the tasks where prior knowledge cannot help.
 4. **Cross-family confounds.** Scale claims are made within families only; cross-family plots are
    descriptive.
-5. **Oracle quality.** Blackjack basic strategy without doubling/splitting is near-optimal, not
-   optimal; this changes the anchor slightly but equally for all policies.
+5. **Oracle quality.** Every oracle is optimal for the configured opponent or rules (expectimax against
+   the random tic-tac-toe opponent, minimax against the minimax opponent, dynamic-programming-optimal
+   hit/stand in blackjack, BFS in gridworld), but blackjack has no doubling or splitting, and oracle
+   agreement is a lower bound wherever several actions are equally good. `docs/known_limitations.md`
+   keeps the full list.
 6. **Hardware non-determinism.** Greedy decoding and seeded sampling; the manifest records torch,
    transformers, CUDA, and GPU model for every run.
 

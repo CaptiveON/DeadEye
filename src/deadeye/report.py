@@ -114,6 +114,8 @@ def normalize_results(cells: pd.DataFrame, episodes: pd.DataFrame) -> tuple[pd.D
 
 # ---------------------------------------------------------------------- tables
 def short_model(model_id: str) -> str:
+    if model_id == "_nomodel":
+        return "no LM (task features)"
     return model_id.rsplit("/", 1)[-1]
 
 
@@ -241,15 +243,20 @@ def fig_scale(cells: pd.DataFrame, out: Path) -> Path | None:
     ncols = min(3, n)
     nrows = int(np.ceil(n / ncols))
     fig, axes = plt.subplots(nrows, ncols, figsize=(4.2 * ncols, 3.2 * nrows), squeeze=False)
+    from matplotlib.lines import Line2D
     markers = _families(mc)
     handles: dict[str, Any] = {}
+    ref_handles: dict[str, Any] = {"oracle": Line2D([0], [0], color=METHOD_COLORS["oracle"], linestyle="--", linewidth=1.0),
+                                   "random": Line2D([0], [0], color=METHOD_COLORS["random"], linestyle="--", linewidth=1.0)}
     for i, (ax, env_key) in enumerate(zip(axes.ravel(), envs)):
         sub = mc[mc["env_key"] == env_key]
         ax.axhline(1.0, color=METHOD_COLORS["oracle"], linestyle="--", linewidth=1.0, alpha=0.6)
         ax.axhline(0.0, color=METHOD_COLORS["random"], linestyle="--", linewidth=1.0, alpha=0.6)
-        ucb = cells[(cells["env_key"] == env_key) & (cells["method"] == "ucb1")]
-        if len(ucb):
-            ax.axhline(float(ucb["norm_mean"].iloc[0]), color=METHOD_COLORS["ucb1"], linestyle=":", linewidth=1.2, alpha=0.8)
+        for ref_method, ls in (("ucb1", ":"), ("feature_probe", "-.")):
+            ref = cells[(cells["env_key"] == env_key) & (cells["method"] == ref_method)]
+            if len(ref):
+                ax.axhline(float(ref["norm_mean"].iloc[0]), color=METHOD_COLORS[ref_method], linestyle=ls, linewidth=1.2, alpha=0.8)
+                ref_handles.setdefault(ref_method, Line2D([0], [0], color=METHOD_COLORS[ref_method], linestyle=ls, linewidth=1.2))
         for method in METHOD_ORDER:
             for mk, grp in sub[sub["method"] == method].groupby("method_key"):
                 for fam, g in grp.groupby(grp["family"].fillna("unknown")):
@@ -263,8 +270,9 @@ def fig_scale(cells: pd.DataFrame, out: Path) -> Path | None:
         _style(ax, xlabel="parameters", ylabel="normalised score (random=0, oracle=1)" if i % ncols == 0 else "", title=env_key)
     for ax in axes.ravel()[n:]:
         ax.axis("off")
-    fig.legend(handles.values(), handles.keys(), loc="lower center", ncol=min(4, max(1, len(handles))), frameon=False, fontsize=8,
-               bbox_to_anchor=(0.5, -0.02))
+    all_handles = {**handles, **ref_handles}
+    fig.legend(all_handles.values(), all_handles.keys(), loc="lower center", ncol=min(4, max(1, len(all_handles))), frameon=False,
+               fontsize=8, bbox_to_anchor=(0.5, -0.02))
     fig.suptitle("Decision quality vs model size", color=TEXT_PRIMARY, fontsize=11, x=0.01, ha="left")
     fig.tight_layout(rect=(0, 0.06, 1, 0.97))
     out.parent.mkdir(parents=True, exist_ok=True)
