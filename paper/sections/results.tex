@@ -1,0 +1,41 @@
+\section{Results}
+\label{sec:results}
+% Every table and figure below is produced by `deadeye report ... --paper-dir paper`. Numbers in the prose
+% must be copied from report/<run>/cells.csv and pairwise_methods.csv; use \result{} to mark them.
+
+\subsection{Scale (H1)}
+\begin{figure}[t]
+  \centering
+  \IfFileExists{figures/fig_scale.pdf}{\includegraphics[width=\linewidth]{figures/fig_scale.pdf}}{\fbox{figures/fig\_scale.pdf missing: run make assets}}
+  \caption{Normalised decision quality (random $=0$, oracle $=1$) versus parameter count, one panel per task,
+  one line per conversion method and model family. Error bars are 95\% bootstrap confidence intervals over
+  episodes; dotted line: UCB1 on the bandit.}
+  \label{fig:scale}
+\end{figure}
+
+\subsection{Conversion method (H3, H4)}
+\begin{table}[t]
+  \centering\small
+  \adjustbox{max width=\linewidth}{\IfFileExists{tables/prompt_generate.tex}{\input{tables/prompt_generate}}{(tables/prompt\_generate.tex missing)}}
+  \adjustbox{max width=\linewidth}{\IfFileExists{tables/prompt_score.tex}{\input{tables/prompt_score}}{(tables/prompt\_score.tex missing)}}
+  \adjustbox{max width=\linewidth}{\IfFileExists{tables/probe.tex}{\input{tables/probe}}{(tables/probe.tex missing)}}
+  \adjustbox{max width=\linewidth}{\IfFileExists{tables/lora_sft.tex}{\input{tables/lora_sft}}{(tables/lora\_sft.tex missing)}}
+\end{table}
+
+\begin{figure}[t]
+  \centering
+  \IfFileExists{figures/fig_illegal.pdf}{\includegraphics[width=.7\linewidth]{figures/fig_illegal.pdf}}{\fbox{figures/fig\_illegal.pdf missing}}
+  \caption{Illegal or unparseable action rate under free-form generation versus parameter count.}
+  \label{fig:illegal}
+\end{figure}
+
+\subsection{Instruction tuning (H2), quantisation (H5), exploration (H6), reasoning budget (H7)}
+\todo{fill from results/ablations via deadeye compare}
+
+\subsection{Quality versus inference cost}
+\begin{figure}[t]
+  \centering
+  \IfFileExists{figures/fig_pareto.pdf}{\includegraphics[width=.75\linewidth]{figures/fig_pareto.pdf}}{\fbox{figures/fig\_pareto.pdf missing}}
+  \caption{Mean normalised score across tasks versus latency per decision.}
+  \label{fig:pareto}
+\end{figure}
