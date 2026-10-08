@@ -36,7 +36,7 @@ than bugs.
   `prepare_stats` records `n_train_episodes_used` and `truncated` so a silently smaller data budget
   is visible in the logs.
 - **Out-of-distribution loan tasks.** `train_params` lets adaptation methods train on the
-  in-distribution variant and evaluate on the shifted one; `configs/ablations.yaml` uses it. Without
+  in-distribution variant and evaluate on the shifted one; `configs/ablations/tasks.yaml` uses it. Without
   it, probes and LoRA trained on the shifted task are not out of distribution.
 - **Terminating on illegal actions** (`illegal_action: terminate`) cuts episodes short and makes
   regret look better for early failures; no shipped config uses it. *Decision.*
