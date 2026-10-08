@@ -1,7 +1,8 @@
 # Catalogue of open-weight model ladders used by DeadEye configs.
 # `params` are total parameters (used for the x-axis of scaling plots and to label quantised models whose
 # packed weights cannot be counted). `verified` records whether the repo id and size were checked against
-# the Hugging Face hub at the time of writing; re-verify before a paper submission.
+# the Hugging Face hub at the time of writing (see docs/model_ladders.md); `verified: false` ids are expected
+# to be correct but could not be fetched during verification. Re-verify every id before a paper submission.
 families:
   - name: smollm2
     license: Apache-2.0
@@ -35,11 +36,11 @@ families:
     license: Apache-2.0
     notes: "Hybrid thinking / non-thinking in one checkpoint (chat_template_kwargs: {enable_thinking: bool}). Base checkpoints carry the -Base suffix."
     models:
-      - {id: Qwen/Qwen3-0.6B-Base, params: 600000000, instruct: false, verified: true}
-      - {id: Qwen/Qwen3-0.6B, params: 600000000, instruct: true, verified: true}
-      - {id: Qwen/Qwen3-1.7B-Base, params: 1700000000, instruct: false, verified: true}
-      - {id: Qwen/Qwen3-1.7B, params: 1700000000, instruct: true, verified: true}
-      - {id: Qwen/Qwen3-4B-Base, params: 4000000000, instruct: false, verified: true}
+      - {id: Qwen/Qwen3-0.6B-Base, params: 600000000, instruct: false, verified: false}
+      - {id: Qwen/Qwen3-0.6B, params: 600000000, instruct: true, verified: false}
+      - {id: Qwen/Qwen3-1.7B-Base, params: 1700000000, instruct: false, verified: false}
+      - {id: Qwen/Qwen3-1.7B, params: 1700000000, instruct: true, verified: false}
+      - {id: Qwen/Qwen3-4B-Base, params: 4000000000, instruct: false, verified: false}
       - {id: Qwen/Qwen3-4B, params: 4000000000, instruct: true, verified: true}
       - {id: Qwen/Qwen3-8B-Base, params: 8200000000, instruct: false, verified: true}
       - {id: Qwen/Qwen3-8B, params: 8200000000, instruct: true, verified: true}
@@ -50,14 +51,14 @@ families:
     license: Gemma Terms of Use
     notes: "270M and 1B are text-only; 4B+ are multimodal (load the text tower via AutoModelForCausalLM)."
     models:
-      - {id: google/gemma-3-270m, params: 268000000, instruct: false, verified: true}
-      - {id: google/gemma-3-270m-it, params: 268000000, instruct: true, verified: true}
+      - {id: google/gemma-3-270m, params: 268000000, instruct: false, verified: false}
+      - {id: google/gemma-3-270m-it, params: 268000000, instruct: true, verified: false}
       - {id: google/gemma-3-1b-pt, params: 1000000000, instruct: false, verified: true}
       - {id: google/gemma-3-1b-it, params: 1000000000, instruct: true, verified: true}
       - {id: google/gemma-3-4b-pt, params: 4300000000, instruct: false, verified: true}
       - {id: google/gemma-3-4b-it, params: 4300000000, instruct: true, verified: true}
-      - {id: google/gemma-3-12b-pt, params: 12200000000, instruct: false, verified: true}
-      - {id: google/gemma-3-12b-it, params: 12200000000, instruct: true, verified: true}
+      - {id: google/gemma-3-12b-pt, params: 12200000000, instruct: false, verified: false}
+      - {id: google/gemma-3-12b-it, params: 12200000000, instruct: true, verified: false}
       - {id: google/gemma-3-27b-pt, params: 27400000000, instruct: false, verified: true}
       - {id: google/gemma-3-27b-it, params: 27400000000, instruct: true, verified: true}
   - name: llama3
@@ -70,7 +71,7 @@ families:
       - {id: meta-llama/Llama-3.2-3B-Instruct, params: 3210000000, instruct: true, verified: true}
       - {id: meta-llama/Llama-3.1-8B, params: 8030000000, instruct: false, verified: true}
       - {id: meta-llama/Llama-3.1-8B-Instruct, params: 8030000000, instruct: true, verified: true}
-      - {id: meta-llama/Llama-3.1-70B-Instruct, params: 70600000000, instruct: true, verified: true}
+      - {id: meta-llama/Llama-3.1-70B-Instruct, params: 70600000000, instruct: true, verified: false}
   - name: pythia
     license: Apache-2.0
     notes: "Fully open (data, checkpoints) base-only ladder from 70M to 12B: the cleanest pure-scale control, but weak at instruction following."
@@ -105,8 +106,8 @@ families:
     license: MIT
     models:
       - {id: microsoft/Phi-4-mini-instruct, params: 3800000000, instruct: true, verified: true}
-      - {id: microsoft/phi-4, params: 14700000000, instruct: true, verified: true}
-      - {id: microsoft/Phi-4-reasoning, params: 14700000000, instruct: true, verified: true}
+      - {id: microsoft/phi-4, params: 14700000000, instruct: true, verified: false}
+      - {id: microsoft/Phi-4-reasoning, params: 14700000000, instruct: true, verified: false}
   - name: deepseek-r1-distill
     license: MIT
     notes: "Reasoning distillations of Qwen2.5 / Llama 3 at 1.5B-70B: a 'reasoning budget' axis on top of the Qwen2.5 ladder."

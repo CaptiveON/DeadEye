@@ -59,8 +59,8 @@ headline number per (model, method).
 
 | Factor | Levels in the configs | Hypothesis |
 |---|---|---|
-| Parameter count (within one family / recipe) | Qwen2.5 0.5B to 72B; Qwen3 0.6B to 32B; SmolLM2 135M to 1.7B; Gemma 3 270M to 27B; Pythia 70M to 12B (control) | H1 |
-| Instruction tuning | base vs instruct checkpoint of the same size | H2 |
+| Parameter count (within one family / recipe) | Qwen2.5 0.5B to 72B (primary: one recipe, base + instruct at every size); Qwen3 0.6B to 32B; SmolLM2 135M to 1.7B; Gemma 3 270M to 27B; Pythia 70M to 12B and OLMo 2 1B to 32B as fully open controls (`configs/sweep_controls.yaml`) | H1 |
+| Instruction tuning | base vs instruct checkpoint of the same size (Qwen2.5 at all seven sizes; Qwen3 only up to 14B, which has no larger base checkpoints) | H2 |
 | Conversion method | the five methods above | H3, H4 |
 | Quantisation | bf16, int8, int4 | H5 |
 | Observation / history format | bandit `history_format: summary` vs `raw`; `history_window` | H6 |
@@ -68,6 +68,16 @@ headline number per (model, method).
 | Prompt details | `action_format: name` vs `letter`; `few_shot` 0/3; `temperature` 0/0.7; `length_norm` | secondary |
 | Data budget for adaptation | probe / LoRA with 10, 40, 100 training episodes | H3 |
 | Task difficulty | arms 5 vs 10, grid 6 vs 9, opponent random vs minimax, loan shift none / covariate / sign-flip | H1, H3 |
+
+Notes from the verified literature (`docs/literature_review.md`): the closest prior designs are Jiwatode et al.
+(2026), who cross Qwen3 sizes with thinking on/off on grid games, and Schmied et al. (ICLR 2026), who find
+2B-27B models leave up to 55% of bandit arms untried and that correct rationales often do not translate into
+the chosen action. H3 has partial prior answers (SFT memorises while RL generalises; a post-trained 3B beating
+a 72B on Frozen Lake; but diverse-task fine-tuning transfers to unseen tasks), so our contribution on H3 is
+the controlled, within-family, pre-registered measurement rather than the direction of the effect.
+Newer Qwen ladders (Qwen3.5 0.8B-397B, Qwen3.6/3.8) exist and can replace Qwen3 once their repo ids are
+verified in `docs/model_ladders.md`. Gemma's large embedding share argues for plotting non-embedding
+parameters where published (`non_embedding_params` in the catalogue).
 
 ### 1.4 Pre-registered hypotheses (details and falsification criteria in `docs/preregistration.md`)
 
