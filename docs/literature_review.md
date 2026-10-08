@@ -600,6 +600,8 @@ The following assessment tries to be honest: several hypotheses already have sub
 
 ## 4. Unverified candidates
 
+*Note added after the bibliography audit: `docs/references_audit.md` records the final verification status of every entry in `paper/refs.bib`; sections 4 and 5 describe the state at the time of the review.*
+
 These were found or suggested but could not be fully verified. They are **not** in `paper/refs.bib` unless noted.
 
 ### Not in the bib

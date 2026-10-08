@@ -183,11 +183,11 @@ class Runner:
                 manifest["gpu"] = torch.cuda.get_device_name(0)
         except Exception:
             pass
-        try:
-            import transformers
-            manifest["transformers"] = transformers.__version__
-        except Exception:
-            pass
+        for mod in ("transformers", "peft", "sklearn", "numpy", "bitsandbytes"):
+            try:
+                manifest[mod] = __import__(mod).__version__
+            except Exception:
+                pass
         dump_json(manifest, self.out / "run_manifest.json")
         done: list[Path] = []
         cells = self.cells()
