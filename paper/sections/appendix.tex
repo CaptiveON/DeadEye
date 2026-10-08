@@ -16,7 +16,7 @@ Table~\ref{tab:envparams} lists every task parameter with its default, its value
 
 \begin{table}[h]
 \centering\small
-\caption{Task parameters. Ablation labels are the task-configuration keys used in \texttt{configs/ablations.yaml}; blank cells take the main-sweep value.}
+\caption{Task parameters. Ablation labels are the task-configuration keys used in the five files under \texttt{configs/ablations/}; blank cells take the main-sweep value.}
 \label{tab:envparams}
 \begin{tabularx}{\linewidth}{@{}l l l l X@{}}
 \toprule
@@ -113,7 +113,7 @@ H7c & Latency-normalized score is lower with thinking at every size & the ratio 
 \end{table}
 
 \paragraph{Design, analysis and exclusions.}
-Tasks, parameters and seeds are those of the configuration files at the tag; evaluation seeds are 0 to 99 (0 to 299 for blackjack) and training seeds 100000 to 100099, and prompts are frozen at the tag. The primary outcome is the normalized return per episode; secondary outcomes are the illegal-action rate, oracle agreement, the task metrics, and latency and tokens per decision. Each cell is summarized by its mean, interquartile mean and percentile bootstrap interval (2000 resamples); paired comparisons use sign-flip permutation tests (5000 permutations) with Holm's correction within each hypothesis's family of tests; slopes are fitted by ordinary least squares with bootstrap intervals over episodes. No episode is excluded because of its outcome. A cell is excluded only if its model fails to load or its run crashes, as recorded in \texttt{run\_manifest.json}, and no interim analysis changes the design. \todo{The pre-registration names configs/sweep\_gpu.yaml and configs/ablations.yaml; add configs/sweep\_controls.yaml (Pythia, OLMo 2) before the tag if the control ladders count toward H1 and H2.}
+Tasks, parameters and seeds are those of the configuration files at the tag; evaluation seeds are 0 to 99 (0 to 299 for tic-tac-toe; blackjack plays twenty hands per episode) and training seeds 100000 to 100099, and prompts are frozen at the tag. The primary outcome is the normalized return per episode; secondary outcomes are the illegal-action rate, oracle agreement, the task metrics, and latency and tokens per decision. Each cell is summarized by its mean, interquartile mean and percentile bootstrap interval (2000 resamples); paired comparisons use sign-flip permutation tests (5000 permutations) with Holm's correction within each hypothesis's family of tests; slopes are fitted by ordinary least squares with bootstrap intervals over episodes. No episode is excluded because of its outcome. A cell is excluded only if its model fails to load or its run crashes, as recorded in \texttt{run\_manifest.json}, and no interim analysis changes the design.
 
 \paragraph{Deviations and excluded cells.}
 \todo{Copy the deviations table of docs/preregistration.md (date, change, reason) and list every excluded cell with the reason recorded in run\_manifest.json; write ``none'' if there are none.}
@@ -164,16 +164,15 @@ deadeye estimate configs/sweep_gpu.yaml --seconds-per-decision 0.3
 deadeye run configs/pilot_cpu.yaml           # Phase 1 pilot
 deadeye run configs/sweep_gpu.yaml           # main sweep; split with --only-model
 deadeye run configs/sweep_controls.yaml      # Pythia and OLMo 2 controls
-deadeye run configs/ablations.yaml           # or block by block with --only-method / --only-env
+deadeye run configs/ablations/quantisation.yaml   # one block at a time: quantisation,
+                                                 # prompting, thinking, adaptation, tasks
 deadeye report results/sweep_gpu --out report/sweep_gpu
-deadeye compare results/sweep_gpu --env loan \
-    --a Qwen__Qwen2.5-1.5B-Instruct/prompt_score \
-    --b Qwen__Qwen2.5-1.5B-Instruct/prompt_generate
+deadeye compare results/sweep_gpu \
+    --pair "loan:Qwen__Qwen2.5-1.5B-Instruct/prompt_score vs loan:Qwen__Qwen2.5-1.5B-Instruct/prompt_generate"
 cd paper && make assets && make              # regenerate tables and figures, build the PDF
 \end{verbatim}
 \end{footnotesize}
 
-\todo{make assets reports results/sweep\_gpu and results/ablations only; add results/sweep\_controls once the control ladders enter the paper.}
 
 \begin{itemize}
   \item \textbf{Code and license.} The harness, configurations, prompts and analysis code are released under Apache-2.0; a Dockerfile builds a CPU image with the harness installed, whose entry point is the \texttt{deadeye} command.

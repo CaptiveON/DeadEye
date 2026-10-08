@@ -35,7 +35,7 @@ Table~\ref{tab:factors} lists the factors we vary. The main sweep crosses the la
 
 \begin{table}[t]
 \centering\small
-\caption{Factors, their levels in the configuration files, and the hypotheses they test. ``Sweep'', ``controls'' and ``ablations'' are \texttt{configs/sweep\_gpu.yaml}, \texttt{configs/sweep\_controls.yaml} and \texttt{configs/ablations.yaml}.}
+\caption{Factors, their levels in the configuration files, and the hypotheses they test. ``Sweep'', ``controls'' and ``ablations'' are \texttt{configs/sweep\_gpu.yaml}, \texttt{configs/sweep\_controls.yaml} and the five files under \texttt{configs/ablations/}.}
 \label{tab:factors}
 \begin{tabularx}{\linewidth}{@{}l X l l@{}}
 \toprule
@@ -57,7 +57,7 @@ Task difficulty & 5 vs.\ 10 arms; grid 6 vs.\ 9; random vs.\ minimax opponent; l
 \subsection{Seeds and data splits}
 \label{sec:setup:seeds}
 
-Evaluation uses seeds 0 to 99 for every task configuration except blackjack, which uses seeds 0 to 299 because single hands are noisy. Probe and LoRA training states and few-shot demonstrations come only from seeds 100000 to 100099, and the harness rejects any configuration in which training and evaluation seeds overlap. Every model and method sees the same evaluation seeds, so all comparisons within a task configuration are paired. The CPU pilot, in which prompts are debugged, evaluates seeds 0 to 19 with training seeds 100000 to 100039. \todo{The pilot seeds 0 to 19 are a subset of the confirmatory seeds 0 to 99. Either move the pilot to disjoint seeds before the tag, or add the confirmatory tests restricted to seeds 20 to 99 as a sensitivity analysis.}
+Evaluation uses seeds 0 to 99 for every task configuration except tic-tac-toe, which uses seeds 0 to 299 because a game's outcome is $-1$, 0 or $+1$; blackjack keeps seeds 0 to 99 but plays twenty hands per episode for the same reason. Probe and LoRA training states and few-shot demonstrations come only from seeds 100000 to 100099, and the harness rejects any configuration in which training and evaluation seeds overlap. Every model and method sees the same evaluation seeds, so all comparisons within a task configuration are paired. The CPU pilot, in which prompts are debugged, evaluates seeds 5000 to 5019 with training seeds 100000 to 100039, so no confirmatory instance is seen while prompts are being edited.
 
 \subsection{Hardware and software}
 \label{sec:setup:hw}
@@ -76,14 +76,14 @@ Scale is summarized by the least-squares fit
 \label{eq:slope}
 \bar{s}_c = a + b\,\log_{10} N_c
 \end{equation}
-over the cells $c$ of one family, method and task, where $\bar s_c$ is the cell mean of \norm{} and $N_c$ the parameter count; $b$ is the change in normalized score per tenfold increase in parameters. Confidence intervals for $b$, for differences of slopes (H1b) and for ratios of slopes (H4b) come from refitting after resampling episodes within every cell, 2000 times. \todo{Slope fits are not yet part of deadeye report; compute them from \texttt{report/<run>/episodes.csv}.}
+over the cells $c$ of one family, method and task, where $\bar s_c$ is the cell mean of \norm{} and $N_c$ the parameter count; $b$ is the change in normalized score per tenfold increase in parameters. Confidence intervals for $b$, for differences of slopes (H1b) and for ratios of slopes (H4b) come from refitting after resampling episodes within every cell, 1000 times; \texttt{deadeye report} writes the fits to \texttt{slopes.csv}, including a fit on the cross-task mean score per model, and \texttt{deadeye.report.slope\_ratio} forms the ratios.
 
 The smallest effect of interest is $\Delta=0.10$ in \norm{}. For a paired comparison in which the per-episode differences have standard deviation $\sigma_\delta$, the number of episodes needed for power $1-\beta$ at level $\alpha$ is
 \begin{equation}
 \label{eq:power}
 n = \Bigl\lceil \bigl((z_{1-\alpha/2}+z_{1-\beta})\,\sigma_\delta/\Delta\bigr)^2 \Bigr\rceil,
 \end{equation}
-which \texttt{deadeye.metrics.episodes\_needed} implements. With $\alpha=0.05$ and power 0.8 this gives 32 episodes at $\sigma_\delta=0.2$ and 126 at $\sigma_\delta=0.4$, so 100 episodes suffice when $\sigma_\delta$ is at most about 0.36. The pilot estimates of $\sigma_\delta$ are \result{[per-task SD of paired differences from the pilot]}. Tasks whose anchors lie close together have a much larger per-episode spread of \norm{}. For blackjack the per-hand standard deviation of the return is close to 1, so the standard deviation of \norm{} is roughly the reciprocal of the anchor span \result{[span $\bar R_{\mathrm{orc}}-\bar R_{\mathrm{rand}}$ on blackjack]}, and even 300 hands may detect only differences larger than 0.10 \result{[minimum detectable difference on blackjack at power 0.8]}. \todo{docs/preregistration.md (Section 5) states that 100 episodes give power 0.8 whenever the SD is at most 0.40; by Equation~\eqref{eq:power} this holds only up to about 0.36. Reconcile before tagging prereg-v1.}
+which \texttt{deadeye.metrics.episodes\_needed} implements. With $\alpha=0.05$ and power 0.8 this gives 32 episodes at $\sigma_\delta=0.2$ and 126 at $\sigma_\delta=0.4$, so 100 episodes suffice when $\sigma_\delta$ is at most about 0.36. The pilot estimates of $\sigma_\delta$ are \result{[per-task SD of paired differences from the pilot]}. Tasks whose anchors lie close together have a much larger per-episode spread of \norm{}. For blackjack the per-hand standard deviation of the return is close to 1, so the standard deviation of \norm{} is roughly the reciprocal of the anchor span \result{[span $\bar R_{\mathrm{orc}}-\bar R_{\mathrm{rand}}$ on blackjack]}, which is why the sweep bundles twenty hands into each of its 100 blackjack episodes and runs 300 tic-tac-toe games: the standard deviation of an episode mean falls with the square root of the number of hands. The minimum detectable difference under this design is \result{[per task, at power 0.8]}, and where it exceeds 0.10 we report it next to the estimate rather than reading a non-significant result as a null.
 
 A cell is excluded only if its model fails to load or its run crashes, never because of its outcome, and Appendix~\ref{app:prereg} lists every excluded cell.
 
