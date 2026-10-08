@@ -17,6 +17,9 @@ cloning) change the dependence on scale?
 RQ3. Which other factors (instruction tuning, quantisation, reasoning budget, observation format,
 prompt encoding, adaptation data budget) move decision quality, and by how much?
 RQ4. What is the quality / inference-cost frontier?
+RQ5 (exploratory, added 8 October 2026, not a pre-registered test). How do small open-weight models converted
+here compare with purpose-built decision models (Kev, Clef, Laya, Perplexity's decider, SemIf, and the hosted
+Jev as a reference) in decision quality, calibration, latency and cost on the same tasks and seeds?
 
 ## 3. Hypotheses, predictions and falsification criteria
 
@@ -51,7 +54,9 @@ fitted within one family on the sweep results.
 - Models: the families and sizes listed in the two configs; a model that cannot be loaded is
   dropped and listed in the appendix.
 - Primary outcome: normalised return per episode. Secondary: illegal-action rate, oracle agreement,
-  task metrics, latency and tokens per decision.
+  task metrics, latency per decision (mean, median, 95th percentile) and tokens per decision, and for every
+  policy that assigns probabilities (scoring, probes, decision models) the expected calibration error and
+  Brier score of the probability assigned to the chosen action against the oracle.
 
 ## 5. Sample size
 

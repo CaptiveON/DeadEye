@@ -323,34 +323,55 @@ edit. See `docs/compute_budget.md`.
 
 ---
 
-## 7. Jev and the decision-model wave: where DeadEye sits
+## 7. The two comparisons the paper makes
 
-TypeSafe AI's Jev (September 2026) is a hosted "System One" model: it takes a state and typed questions and
-returns a chosen option, a probability for every allowed answer and a confidence, and it never writes
-prose. Its weights, architecture and training data are closed. Within weeks, open-weight relatives appeared
-that speak the same protocol: Kev (a LoRA adapter plus a small pointer head on Qwen3.5 and Qwen3.8 bases,
-0.8B to 27B, Apache-2.0, with a local server), Cloudflare's Clef and Clef-flash (frozen Qwen3.8-27B and
-Qwen3.5-9B with a routing head and low-rank adapters, served on Workers AI), Perplexity's pplx-decider
-(a Qwen3.8-27B fine-tune) and Amazon's Strands Decider. All of their published numbers are label accuracies
-on classification panels, mostly measured by the vendors themselves.
+The paper's results have two parts, and the second was asked for explicitly: first, small against large
+open-weight models; second, small open-weight models (converted here) against the purpose-built decision
+models that appeared in September and October 2026.
 
-In this project's terms, these products are the probe and LoRA conversions productised, exposed through
-the likelihood-scoring interface. That makes them a natural comparison, and the harness treats them as a
-fourth backend (`decision`) that sends the task description and observation as the state and the legal
-actions as the criteria of one choice question. `configs/decision_models.yaml` evaluates Jev through its API,
-Kev through its local server, Clef through Workers AI, and the same Qwen3.5 bases converted by our own
-methods, on the seven tasks with their known optimal policies. The comparison is exploratory and is kept
-out of the pre-registered hypotheses, because the hosted model cannot be controlled for training data or
-contamination and its latency includes the network. What it can answer is the practical question behind
-the whole project: does a conversion anyone can reproduce on open weights reach the decision quality of
-the hosted product on tasks with a known optimum, and at what cost per decision?
+### 7.1 Small versus large open-weight models
 
-| What Jev offers | DeadEye equivalent | Difference |
-|---|---|---|
-| probabilities over allowed answers, no text | `prompt_score` on any open model | ours reads the base model's own likelihoods; Jev's head is trained for calibration |
-| a trained decision head on a frozen base | `probe` (logistic head on hidden states) | ours is trained on oracle labels for the task at hand, in minutes on a CPU |
-| adapted weights returning decisions | `lora_sft` | ours clones a known optimal policy; theirs is trained on classification corpora |
-| calibrated confidence | the probe's class probabilities and the score margins | calibration is measured against the oracle, not assumed |
+Within each family ladder, every method and task: decision quality (normalised score, oracle agreement,
+task metrics), reliability (illegal-action rate), speed (latency per decision, median and 95th percentile,
+measured on one machine), efficiency (prompt and generated tokens per decision; an estimate of floating-point
+operations as 2 x parameters x tokens; peak memory at the recorded precision), and the quality-per-second and
+quality-per-parameter frontiers. The scale slopes (`slopes.csv`) and the cost frontier (`fig_pareto`) summarise
+it; H1, H2, H4, H5 and H7 are the pre-registered tests.
+
+### 7.2 Small open-weight conversions versus decision models
+
+"Decision models" take a state and typed questions and return probabilities over allowed answers without
+generating text. The systems and what is verified about them (official cards, announcements and repositories;
+all performance numbers below are the makers' own):
+
+| System | Maker, licence | Base and size | How it decides | How we run it |
+|---|---|---|---|---|
+| Jev | TypeSafe AI; closed, hosted | undisclosed | "System One" model trained with reinforcement learning for calibrated decisions on synthetic data (maker's description) | hosted API, if access is granted; reference row only |
+| Kev 0.8B / 4B / 9B / 27B | Jared Palmer; Apache-2.0 | Qwen3.5-0.8B/4B/9B-Base (rank-16 LoRA + pointer head); Qwen3.8-27B (full fine-tune) | trained on a 10k-example decision set plus generated policy examples; System One-compatible server | local server (`kev.serve`) |
+| Clef-flash 9B / Clef 27B | Cloudflare; Apache-2.0 | Qwen3.5-9B / Qwen3.8-27B, frozen | routing head + low-rank adapters; Jev-compatible | Workers AI, or the weights |
+| pplx-decider-v1.1 27B | Perplexity; Apache-2.0 reported, gated repo | Qwen3.8-27B fine-tune | Decisions API (own schema) | hosted API through an adapter |
+| Laya / Laya-multilingual / Laya-typed-decisions | Convai Innovations; Apache-2.0 | ModernBERT-large 421M / mmBERT-base 322M encoders + decision head | Choice / Score / Noul primitives, one forward pass | local package |
+| SemIf (formerly OpenJev) | Theo Lee; MIT code | frozen Qwen3 0.6B, MiniCPM5 2B, Qwen3.5-4B (any checkpoint) | reads option logits in one forward pass, no training | local; and reproduced by our `score_letter` on the same checkpoint |
+| Strands Decider 2B | Amazon | 2B | open "Jev clone" (reported) | not run in v1 |
+
+On our side: the same Qwen3.5 bases Kev and Clef are built on (0.8B, 4B, 9B), plus the small Qwen2.5 and
+Qwen3 checkpoints from the ladders, converted by scoring, probe and LoRA with oracle-labelled states.
+
+Every system is reduced to the same numbers, measured on the same tasks and seeds: normalised score per task
+and its mean and worst task; oracle agreement; calibration of the probability it assigns to its chosen action
+against the oracle (expected calibration error and Brier score, which is where "calibrated decisions" is tested
+rather than assumed); latency per decision (median, 95th percentile, network included for hosted systems and
+reported separately); tokens and parameters; and openness (weights, code, training data, licence). The report
+writes this as `system_comparison.csv` and the paper prints it as one table with the calibration tables beside it.
+
+Two of the rows double as validations. SemIf's readout is our letter-scoring condition, so SemIf on Qwen3.5-4B
+and our `score_letter` on the same checkpoint should agree up to prompt wording. Kev on a Qwen3.5 base and our
+LoRA conversion of the same base differ only in training data (theirs: classification corpora; ours: oracle
+labels of the task), which isolates what the training target contributes.
+
+What this comparison cannot do is control the closed system: Jev's data and architecture are unknown, so it is
+a reference row, not a tested hypothesis. It is reported as exploratory (RQ5) and kept out of the pre-registered
+tests.
 
 ## 8. Extensions after v1.0
 

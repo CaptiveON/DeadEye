@@ -30,12 +30,21 @@ models:
   - {backend: decision, id: kev-latest, base_url: "http://127.0.0.1:8011/v1/systemone", params: 9000000000, family: kev, label: kev-9b}
   - {backend: decision, id: "@cf/cloudflare/clef-flash", base_url: "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/ai/run/@cf/cloudflare/clef-flash", api_key_env: CLOUDFLARE_API_TOKEN, params: 9000000000, family: clef, label: clef-flash}
   - {backend: decision, id: "@cf/cloudflare/clef", base_url: "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/ai/run/@cf/cloudflare/clef", api_key_env: CLOUDFLARE_API_TOKEN, params: 27000000000, family: clef, label: clef}
+  # Laya (Convai Innovations, Apache-2.0): ModernBERT-large / mmBERT-base encoders with a decision head, 322M-421M.
+  # Served from its Python package; if its HTTP schema differs from the System One protocol, add an adapter
+  # (see deadeye/models/decision_api.py) before running.
+  - {backend: decision, id: laya-typed-decisions, base_url: "http://127.0.0.1:8020/v1/systemone", params: 421000000, family: laya, label: laya-typed-decisions}
+  - {backend: decision, id: laya, base_url: "http://127.0.0.1:8021/v1/systemone", params: 421000000, family: laya, label: laya}
+  # SemIf (MIT code): option-logit readout over frozen open weights, no training. Its reference server on Qwen3.5-4B;
+  # the same readout is reproduced below by score_letter on the same checkpoint, which doubles as a validation.
+  - {backend: decision, id: semif-qwen3.5-4b, base_url: "http://127.0.0.1:8030/v1/systemone", params: 4000000000, family: semif, label: semif-qwen3.5-4b}
   # the same open bases, converted by DeadEye's methods (repo ids to be confirmed against the hub before running)
   - {backend: hf, id: Qwen/Qwen3.5-0.8B-Base, params: 800000000, family: qwen3.5, instruct: false}
   - {backend: hf, id: Qwen/Qwen3.5-4B-Base, params: 4000000000, family: qwen3.5, instruct: false}
   - {backend: hf, id: Qwen/Qwen3.5-9B-Base, params: 9000000000, family: qwen3.5, instruct: false}
 methods:
   - {name: prompt_score}                                                    # the only method a decision model supports
+  - {name: prompt_score, params: {action_format: letter}, label: score_letter}   # SemIf-style option-logit readout on our side
   - {name: probe, params: {layer: mid, n_train_episodes: 100}}             # skipped automatically for API models
   - {name: lora_sft, params: {n_train_episodes: 100, infer: score, lora: {r: 16, alpha: 32, epochs: 2, lr: 0.0002, batch_size: 8}}}
 baselines: [random, oracle, ucb1]

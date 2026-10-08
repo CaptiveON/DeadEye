@@ -119,7 +119,60 @@ def run_episode(env: Environment, policy: Policy, seed: int, illegal_action: str
     ep = {"seed": seed, "return": ret, "steps": t, "n_illegal": n_illegal, "illegal_rate": n_illegal / max(1, t),
           "oracle_agreement": n_agree / max(1, t), "latency_s": latency, "prompt_tokens": ptoks, "completion_tokens": ctoks,
           **metrics}
+    conf = [(c, hit) for c, hit in (decision_confidence(st) for st in steps) if c is not None]
+    if conf:
+        ep["confidence_mean"] = float(np.mean([c for c, _ in conf]))
+        ep["brier"] = float(np.mean([(c - hit) ** 2 for c, hit in conf]))
+        ep["n_confidence"] = len(conf)
     return ep, steps
+
+
+def decision_confidence(step: dict[str, Any]) -> tuple[float | None, int]:
+    """Probability the policy assigned to the action it took, and whether that action was the oracle's.
+
+    Scoring policies log per-label log-likelihoods (``scores``), probes log class probabilities (``probs``) and
+    decision models log a ``confidence``; the first two are normalised over the legal actions. Generation
+    policies carry no probability and are skipped.
+    """
+    extra = step.get("extra") or {}
+    action, oracle, legal = step.get("action"), step.get("oracle_action"), step.get("legal_actions") or []
+    if action is None or not step.get("legal", True):
+        return None, 0
+    hit = int(action == oracle)
+    if "scores" in extra and extra["scores"]:
+        scores = extra["scores"]
+        # keys are labels (names or letters); map to actions when a label map is implicit by position
+        vals = np.array(list(scores.values()), dtype=float)
+        probs = np.exp(vals - vals.max())
+        probs /= probs.sum()
+        keys = list(scores)
+        if action in keys:
+            return float(probs[keys.index(action)]), hit
+        if len(keys) == len(legal) and action in legal:  # letter labels: same order as the legal list
+            return float(probs[legal.index(action)]), hit
+        return None, hit
+    if "probs" in extra and extra["probs"]:
+        probs = {k: float(v) for k, v in extra["probs"].items() if k in legal}
+        total = sum(probs.values())
+        if total > 0 and action in probs:
+            return probs[action] / total, hit
+        return None, hit
+    if extra.get("confidence") is not None:
+        return float(extra["confidence"]), hit
+    return None, hit
+
+
+def expected_calibration_error(conf: np.ndarray, hit: np.ndarray, n_bins: int = 10) -> float:
+    """Standard ECE with equal-width bins over the assigned probability of the taken action."""
+    if len(conf) == 0:
+        return float("nan")
+    bins = np.clip((conf * n_bins).astype(int), 0, n_bins - 1)
+    ece = 0.0
+    for b in range(n_bins):
+        m = bins == b
+        if m.any():
+            ece += m.mean() * abs(conf[m].mean() - hit[m].mean())
+    return float(ece)
 
 
 class Runner:
@@ -260,6 +313,7 @@ class Runner:
         prep_time = time.perf_counter() - t0
         seeds = self.cfg.episodes_for(cell.env)
         episodes: list[dict[str, Any]] = []
+        all_steps: list[dict[str, Any]] = []
         cdir.mkdir(parents=True, exist_ok=True)
         steps_path = cdir / "steps.jsonl"
         ep_path = cdir / "episodes.jsonl"
@@ -270,12 +324,13 @@ class Runner:
                     model.seed(seed)
                 ep, steps = run_episode(env, policy, seed, self.cfg.illegal_action, self.cfg.log_prompts)
                 episodes.append(ep)
+                all_steps.extend(steps)
                 ef.write(json.dumps(ep, default=_json_default) + "\n")
                 if self.cfg.log_steps:
                     for s in steps:
                         sf.write(json.dumps(s, default=_json_default) + "\n")
         eval_time = time.perf_counter() - t1
-        summary = summarize(cell, episodes, model, policy, prepare_stats, prep_time, eval_time, self.cfg)
+        summary = summarize(cell, episodes, model, policy, prepare_stats, prep_time, eval_time, self.cfg, all_steps)
         dump_json(summary, cdir / "summary.json")
         self._say(f"  {'/'.join(cell.path_parts)}: return {summary['return_mean']:.3f} +- {summary['return_std']:.3f}, "
                   f"illegal {summary['illegal_rate']:.1%}, agree {summary['oracle_agreement']:.1%}, "
@@ -294,9 +349,17 @@ def _method_mutates(name: str) -> bool:
 
 
 def summarize(cell: Cell, episodes: list[dict[str, Any]], model: LanguageModel | None, policy: Policy,
-              prepare_stats: dict[str, Any], prep_time: float, eval_time: float, cfg: RunConfig) -> dict[str, Any]:
+              prepare_stats: dict[str, Any], prep_time: float, eval_time: float, cfg: RunConfig,
+              all_steps: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+    all_steps = all_steps or []
     rets = np.array([e["return"] for e in episodes], dtype=float)
     n_steps = int(sum(e["steps"] for e in episodes))
+    conf_pairs = [(c, h) for st in all_steps for c, h in [decision_confidence(st)] if c is not None]
+    calibration = {}
+    if conf_pairs:
+        ca = np.array([c for c, _ in conf_pairs]); ha = np.array([h for _, h in conf_pairs], dtype=float)
+        calibration = {"ece": expected_calibration_error(ca, ha), "brier": float(np.mean((ca - ha) ** 2)),
+                       "confidence_mean": float(ca.mean()), "accuracy_vs_oracle": float(ha.mean()), "n_confidence": int(len(ca))}
     n_illegal = int(sum(e["n_illegal"] for e in episodes))
     metric_keys = [k for k in episodes[0] if k not in ("seed",)] if episodes else []
     means = {f"{k}_mean": float(np.mean([e[k] for e in episodes])) for k in metric_keys}
@@ -315,9 +378,11 @@ def summarize(cell: Cell, episodes: list[dict[str, Any]], model: LanguageModel |
         "illegal_rate": n_illegal / max(1, n_steps),
         "oracle_agreement": float(np.mean([e["oracle_agreement"] for e in episodes])) if episodes else float("nan"),
         "latency_per_decision_s": float(sum(e["latency_s"] for e in episodes) / max(1, n_steps)),
+        "latency_p50_s": float(np.percentile([st["latency_s"] for st in all_steps], 50)) if all_steps else float("nan"),
+        "latency_p95_s": float(np.percentile([st["latency_s"] for st in all_steps], 95)) if all_steps else float("nan"),
         "prompt_tokens_per_decision": float(sum(e["prompt_tokens"] for e in episodes) / max(1, n_steps)),
         "completion_tokens_per_decision": float(sum(e["completion_tokens"] for e in episodes) / max(1, n_steps)),
-        **means, **stds,
+        **means, **stds, "calibration": calibration,
         "prepare_stats": prepare_stats, "prepare_time_s": prep_time, "eval_time_s": eval_time,
         "illegal_action_policy": cfg.illegal_action, "run_name": cfg.name, "deadeye": __version__,
         "finished": datetime.now(timezone.utc).isoformat(),

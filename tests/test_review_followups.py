@@ -167,3 +167,54 @@ def test_compare_cli_families(tmp_path):
     assert result.exit_code == 0, result.output
     rows = out.read_text().splitlines()
     assert len(rows) == 3 and "p_holm" in rows[0]
+
+
+def test_decision_confidence_and_ece():
+    from deadeye.runner import decision_confidence, expected_calibration_error
+    step = {"action": "hit", "oracle_action": "hit", "legal_actions": ["hit", "stand"], "legal": True,
+            "extra": {"scores": {"hit": -0.1, "stand": -2.4}}}
+    c, hit = decision_confidence(step)
+    assert hit == 1 and 0.9 < c < 0.92
+    step_letter = {"action": "stand", "oracle_action": "hit", "legal_actions": ["hit", "stand"], "legal": True,
+                   "extra": {"scores": {"A": -2.4, "B": -0.1}}}
+    c2, hit2 = decision_confidence(step_letter)
+    assert hit2 == 0 and abs(c2 - c) < 1e-9
+    assert decision_confidence({"action": "x", "oracle_action": "x", "legal_actions": ["x", "y"], "legal": True, "extra": {"probs": {"x": 0.7, "y": 0.3}}}) == (0.7, 1)
+    # probabilities are renormalised over the legal actions only
+    assert decision_confidence({"action": "x", "oracle_action": "x", "legal_actions": ["x"], "legal": True, "extra": {"probs": {"x": 0.7, "y": 0.3}}}) == (1.0, 1)
+    assert decision_confidence({"action": "x", "oracle_action": "y", "legal_actions": ["x", "y"], "legal": True, "extra": {"confidence": 0.55}}) == (0.55, 0)
+    assert decision_confidence({"action": "x", "oracle_action": "x", "legal_actions": ["x"], "legal": True, "extra": {"label": "x"}}) == (None, 1)
+    conf = np.array([0.95] * 50 + [0.55] * 50)
+    hit = np.array([1] * 45 + [0] * 5 + [1] * 25 + [0] * 25, dtype=float)
+    ece = expected_calibration_error(conf, hit)
+    assert abs(ece - (0.5 * abs(0.95 - 0.9) + 0.5 * abs(0.55 - 0.5))) < 1e-9
+
+
+def test_summary_carries_calibration(tmp_path):
+    cfg = RunConfig.from_dict({
+        "name": "t", "output_dir": str(tmp_path / "r"), "seeds": {"start": 0, "n": 3}, "catalog": None,
+        "envs": [{"name": "blackjack"}], "models": [{"backend": "mock", "id": "m"}],
+        "methods": [{"name": "prompt_score"}, {"name": "prompt_generate"}],
+    })
+    Runner(cfg).run()
+    score = json.loads((tmp_path / "r" / "blackjack" / "m" / "prompt_score" / "summary.json").read_text())
+    gen = json.loads((tmp_path / "r" / "blackjack" / "m" / "prompt_generate" / "summary.json").read_text())
+    assert set(score["calibration"]) >= {"ece", "brier", "accuracy_vs_oracle", "n_confidence"} and score["calibration"]["n_confidence"] > 0
+    assert gen["calibration"] == {}
+
+
+def test_system_comparison_table(tmp_path):
+    from deadeye.report import build_report
+    cfg = RunConfig.from_dict({
+        "name": "t", "output_dir": str(tmp_path / "r"), "seeds": {"start": 0, "n": 3}, "catalog": None,
+        "envs": [{"name": "blackjack"}, {"name": "loan", "params": {"n_applicants": 3}}],
+        "models": [{"backend": "mock", "id": "m", "params": 1000, "family": "mock"}],
+        "methods": [{"name": "prompt_score"}, {"name": "prompt_generate"}],
+    })
+    Runner(cfg).run()
+    res = build_report([str(tmp_path / "r")], tmp_path / "rep")
+    comp = res["tables"]["system_comparison"]
+    assert len(comp) == 2 and (tmp_path / "rep" / "system_comparison.csv").exists()
+    raw = __import__("pandas").read_csv(tmp_path / "rep" / "system_comparison.csv")
+    assert set(raw["method"]) == {"prompt_score", "prompt_generate"} and (raw["n_tasks"] == 2).all()
+    assert raw.loc[raw["method"] == "prompt_score", "ece"].notna().all() and raw["latency_p95_s"].notna().all()

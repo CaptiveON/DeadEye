@@ -206,3 +206,9 @@ reachable: Harvard style prefers the journalist's name over the publication's.
 | cloudflare2026clef | official announcement | blog.cloudflare.com and developers.cloudflare.com changelog (search rendering) |
 | perplexity2026decider | model card + docs | huggingface.co/perplexity-ai (search rendering) |
 | thenewstack2026jev | reporting | thenewstack.io (search rendering) |
+| convai2026laya | model cards + official site | huggingface.co/convaiinnovations and laya.convaiinnovations.com (search rendering) |
+| lee2026semif | software repository | github.com/TheoLeeCJ/SemIf-OpenJev (search rendering of the README) |
+
+Two arXiv preprints that evaluate decision models (arXiv:2609.24574 on text annotation; arXiv:2609.28940 on
+penetration-testing harnesses, single independent author) were found but not cited: the first's authorship
+could not be confirmed and the second is not from an established lab, so neither meets the source rule.

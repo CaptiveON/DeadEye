@@ -90,7 +90,25 @@ A cell is excluded only if its model fails to load or its run crashes, never bec
 \subsection{Decision models}
 \label{sec:setup:decision}
 
-A fourth backend, \texttt{decision}, speaks the System One protocol of Jev and its open-weight relatives \citep{typesafe2026choice,palmer2026kev,cloudflare2026clef}: the rendered task description and observation go out as the state, the legal actions as the criteria of a single choice question, and the returned probabilities are used exactly as the log-likelihoods of \texttt{prompt\_score}. The configuration \texttt{configs/decision\_models.yaml} evaluates Jev through its hosted API, Kev at 0.8B, 4B and 9B through its local server, and Clef and Clef-flash through Workers AI, next to the same Qwen3.5 base checkpoints converted by our own scoring, probe and LoRA methods. Only scoring applies to a decision model; it cannot generate, so the free-reply and generation conditions are skipped for it. This comparison is exploratory and was added after the pre-registration: the hosted model's training data and architecture are unknown, so contamination cannot be checked, its latency includes network time and is reported separately from the local measurements, and we state no hypothesis about it. What it can show is whether a conversion that anyone can reproduce on open weights reaches the decision quality of the hosted product on tasks with a known optimum, and at what cost.
+A fourth backend, \texttt{decision}, speaks the System One protocol of Jev and its open-weight relatives \citep{typesafe2026choice,palmer2026kev,cloudflare2026clef}: the rendered task description and observation go out as the state, the legal actions as the criteria of a single choice question, and the returned probabilities are used exactly as the log-likelihoods of \texttt{prompt\_score}. Table~\ref{tab:systems} lists the systems and what is verified about each from its maker's cards, announcements and repositories; every performance figure quoted there is the maker's own. The configuration \texttt{configs/decision\_models.yaml} evaluates them next to the same Qwen3.5 base checkpoints converted by our own scoring, probe and LoRA methods, and next to the small Qwen2.5 and Qwen3 checkpoints of the ladders. Only scoring applies to a decision model; it cannot generate, so the free-reply and generation conditions are skipped for it. Two rows double as validations: SemIf's readout is our letter-scoring condition, so the two should agree on the same checkpoint up to prompt wording, and Kev on a Qwen3.5 base differs from our LoRA conversion of the same base only in its training data, which isolates what the training target contributes. Every system is reduced to the same numbers: normalized score per task with its mean and worst task, oracle agreement, calibration of the probability assigned to the chosen action against the oracle (expected calibration error and Brier score), latency per decision (median and 95th percentile, with network time reported separately for hosted systems), tokens, parameters and openness.
+
+\begin{table}[t]
+\centering\small
+\caption{Decision models compared with the open-weight conversions. Sizes, bases, licenses and training descriptions are from the makers' cards and announcements; ``how run'' is our access path. Jev's base and training data are undisclosed.}
+\label{tab:systems}
+\begin{tabularx}{\linewidth}{@{}l l X X l@{}}
+\toprule
+System & Maker, license & Base and size & How it decides (as reported) & How run\\
+\midrule
+Jev \citep{typesafe2026jev} & TypeSafe AI; closed & undisclosed & ``System One'' model; reinforcement learning for calibrated decisions on synthetic data & hosted API\\
+Kev \citep{palmer2026kev} & J.~Palmer; Apache-2.0 & Qwen3.5 0.8B/4B/9B-Base with rank-16 LoRA and a pointer head; Qwen3.8-27B full fine-tune & trained on a 10k-example decision set plus generated policy examples; System One server & local server\\
+Clef, Clef-flash \citep{cloudflare2026clef} & Cloudflare; Apache-2.0 & Qwen3.8-27B, Qwen3.5-9B, frozen & routing head with low-rank adapters; Jev-compatible & Workers AI\\
+pplx-decider v1.1 \citep{perplexity2026decider} & Perplexity; Apache-2.0 reported, gated & Qwen3.8-27B fine-tune & Decisions API with its own schema & adapter\\
+Laya \citep{convai2026laya} & Convai Innovations; Apache-2.0 & ModernBERT-large 421M; mmBERT-base 322M & encoder with a decision head; Choice, Score and Noul primitives & local package\\
+SemIf \citep{lee2026semif} & T.~Lee; MIT code & frozen Qwen3 0.6B, MiniCPM5 2B, Qwen3.5-4B & option-logit readout, no training & local; also reproduced by our letter scoring\\
+\bottomrule
+\end{tabularx}
+\end{table} This comparison is exploratory and was added after the pre-registration: the hosted model's training data and architecture are unknown, so contamination cannot be checked, its latency includes network time and is reported separately from the local measurements, and we state no hypothesis about it. What it can show is whether a conversion that anyone can reproduce on open weights reaches the decision quality of the hosted product on tasks with a known optimum, and at what cost.
 
 \subsection{Pre-registration}
 \label{sec:setup:prereg}

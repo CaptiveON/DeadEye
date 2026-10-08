@@ -54,6 +54,13 @@ than bugs.
   sees few-shot demonstrations or a chain-of-thought budget, so only the scoring condition applies to it.
 - **Base-model identity.** The open decision models are built on Qwen3.5 and Qwen3.8 checkpoints whose repo
   ids must be confirmed on the hub before the run; the catalogue does not list them as verified.
+- **Protocol adapters.** Kev and Clef speak the System One protocol the `decision` backend implements. Laya's
+  package and Perplexity's Decisions API have their own schemas and need a thin adapter (same class, different
+  request and response mapping) before they can be run; SemIf is reproduced exactly by `score_letter` on the
+  same checkpoint, so its row can be filled either from its server or from ours.
+- **Calibration scope.** ECE and Brier are computed on the probability of the action taken, against the oracle's
+  action; where several actions are optimal the oracle's tie-break makes a well-calibrated policy look
+  over-confident, so calibration is compared across systems within a task, never across tasks.
 
 ## Statistics
 

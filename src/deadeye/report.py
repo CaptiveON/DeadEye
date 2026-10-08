@@ -47,7 +47,7 @@ def load_results(dirs: Iterable[str | Path]) -> tuple[pd.DataFrame, pd.DataFrame
                 "family": model.get("family"), "instruct": model.get("instruct"), "precision": model.get("precision"),
                 "method": s["method"], "method_key": s["method_key"], "n_episodes": s["n_episodes"], "n_decisions": s["n_decisions"],
                 "return_mean": s["return_mean"], "return_std": s["return_std"], "illegal_rate": s["illegal_rate"],
-                "oracle_agreement": s["oracle_agreement"], "latency_per_decision_s": s["latency_per_decision_s"],
+                "oracle_agreement": s["oracle_agreement"], "latency_per_decision_s": s["latency_per_decision_s"], "latency_p50_s": s.get("latency_p50_s"), "latency_p95_s": s.get("latency_p95_s"),
                 "prompt_tokens_per_decision": s["prompt_tokens_per_decision"],
                 "completion_tokens_per_decision": s["completion_tokens_per_decision"],
                 "prepare_time_s": s.get("prepare_time_s", 0.0), "eval_time_s": s.get("eval_time_s", 0.0),
@@ -57,6 +57,8 @@ def load_results(dirs: Iterable[str | Path]) -> tuple[pd.DataFrame, pd.DataFrame
             for k, v in s.items():
                 if k.endswith("_mean") and k not in row:
                     row[k] = v
+            for k, v in (s.get("calibration") or {}).items():
+                row[f"cal_{k}"] = v
             cells.append(row)
             for e in _read_jsonl(summ.parent / "episodes.jsonl"):
                 eps.append({"env_key": s["env_key"], "model_key": s["model_key"], "method_key": s["method_key"], "method": s["method"],
@@ -164,9 +166,44 @@ def secondary_tables(cells: pd.DataFrame) -> dict[str, pd.DataFrame]:
                            ("completion_tokens_per_decision", "completion_tokens_per_decision", "{:.1f}")]:
         t = model_cells.pivot_table(index=["method_key", "model"], columns="env_key", values=col, aggfunc="first")
         out[name] = t.map(lambda v: fmt.format(v) if pd.notna(v) else "")
+    if "cal_ece" in model_cells.columns:
+        cal = model_cells.dropna(subset=["cal_ece"])
+        if len(cal):
+            t = cal.pivot_table(index=["method_key", "model"], columns="env_key", values="cal_ece", aggfunc="first")
+            out["calibration_ece"] = t.map(lambda v: f"{v:.3f}" if pd.notna(v) else "")
+            t = cal.pivot_table(index=["method_key", "model"], columns="env_key", values="cal_brier", aggfunc="first")
+            out["calibration_brier"] = t.map(lambda v: f"{v:.3f}" if pd.notna(v) else "")
     anchors = cells[cells["model_key"] == "_baseline"].pivot_table(index="method", columns="env_key", values="return_mean", aggfunc="first")
     out["baseline_returns"] = anchors.map(lambda v: f"{v:.3f}" if pd.notna(v) else "")
     return out
+
+
+def system_comparison(cells: pd.DataFrame) -> pd.DataFrame:
+    """One row per (model, method): mean and worst normalised score across tasks, calibration, latency, size.
+
+    This is the table behind the comparison of decision models with open-weight conversions: every system is
+    reduced to the same handful of numbers measured on the same tasks and seeds.
+    """
+    mc = cells[cells["model_key"] != "_baseline"].copy()
+    if mc.empty:
+        return pd.DataFrame()
+    rows = []
+    for (mk, mid, meth, fam, params, backend), g in mc.groupby(["model_key", "model_id", "method_key", "family", "params", "backend"], dropna=False):
+        row = {"model": short_model(mid), "model_key": mk, "family": fam, "backend": backend, "method": meth,
+               "params": params, "n_tasks": int(g["env_key"].nunique()),
+               "norm_mean": float(g["norm_mean"].mean()), "norm_min": float(g["norm_mean"].min()),
+               "norm_min_task": str(g.loc[g["norm_mean"].idxmin(), "env_key"]) if g["norm_mean"].notna().any() else "",
+               "oracle_agreement": float(g["oracle_agreement"].mean()), "illegal_rate": float(g["illegal_rate"].mean()),
+               "latency_mean_s": float(g["latency_per_decision_s"].mean()),
+               "latency_p50_s": float(g["latency_p50_s"].mean()) if "latency_p50_s" in g and g["latency_p50_s"].notna().any() else float("nan"),
+               "latency_p95_s": float(g["latency_p95_s"].max()) if "latency_p95_s" in g and g["latency_p95_s"].notna().any() else float("nan"),
+               "completion_tokens": float(g["completion_tokens_per_decision"].mean())}
+        if "cal_ece" in g.columns and g["cal_ece"].notna().any():
+            row["ece"] = float(g["cal_ece"].mean())
+            row["brier"] = float(g["cal_brier"].mean())
+        rows.append(row)
+    df = pd.DataFrame(rows).sort_values(["norm_mean"], ascending=False)
+    return df.reset_index(drop=True)
 
 
 def tables_to_markdown(tables: dict[str, pd.DataFrame]) -> str:
@@ -516,6 +553,19 @@ def build_report(result_dirs: list[str | Path], out_dir: str | Path, paper_dir: 
     (out / "tables").mkdir(exist_ok=True)
     pw = pairwise_by_model(episodes, cells)
     pw.to_csv(out / "pairwise_methods.csv", index=False)
+    comp = system_comparison(cells)
+    if len(comp):
+        comp.to_csv(out / "system_comparison.csv", index=False)
+        shown = comp.drop(columns=["model_key", "backend", "norm_min_task"]).copy()
+        for c in ("norm_mean", "norm_min", "oracle_agreement", "illegal_rate", "ece", "brier"):
+            if c in shown:
+                shown[c] = shown[c].map(lambda v: f"{v:.3f}" if pd.notna(v) else "")
+        for c in ("latency_mean_s", "latency_p50_s", "latency_p95_s"):
+            shown[c] = shown[c].map(lambda v: f"{v * 1000:.0f} ms" if pd.notna(v) else "")
+        shown["params"] = shown["params"].map(_fmt_params)
+        shown["completion_tokens"] = shown["completion_tokens"].map(lambda v: f"{v:.1f}")
+        tables["system_comparison"] = shown.set_index(["model", "method"])
+        (out / "tables" / "system_comparison.tex").write_text(shown.to_latex(index=False, escape=True))
     slopes = scale_slopes(cells, episodes)
     if len(slopes):
         slopes.drop(columns=["_boot"]).to_csv(out / "slopes.csv", index=False)
