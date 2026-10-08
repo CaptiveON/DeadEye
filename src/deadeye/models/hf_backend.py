@@ -128,7 +128,10 @@ class HFModel(LanguageModel):
         torch = self.torch
         prompt_ids = self.encode(messages)
         ids, mask = self._batch([prompt_ids])
-        gen_kwargs: dict[str, Any] = {"max_new_tokens": int(max_new_tokens), "pad_token_id": self.tokenizer.pad_token_id}
+        # repetition_penalty=1.0 overrides checkpoint defaults (e.g. Qwen2.5-Instruct ships 1.05, its base model does
+        # not), which would otherwise silently change "greedy" decoding for some checkpoints only.
+        gen_kwargs: dict[str, Any] = {"max_new_tokens": int(max_new_tokens), "pad_token_id": self.tokenizer.pad_token_id,
+                                      "repetition_penalty": 1.0}
         if temperature and temperature > 0:
             gen_kwargs.update(do_sample=True, temperature=float(temperature), top_p=1.0, top_k=0)
         else:
@@ -150,6 +153,13 @@ class HFModel(LanguageModel):
         choice_ids = [self.tokenizer(c, add_special_tokens=False)["input_ids"] for c in choices]
         if any(len(c) == 0 for c in choice_ids):
             raise ValueError("a choice tokenised to zero tokens")
+        # If one choice's tokens are a strict prefix of another's (e.g. "arm_1" vs "arm_10" with digit-splitting
+        # tokenisers), the summed log-probability of the longer choice can never exceed the shorter one. Score
+        # "choice followed by end-of-sequence" instead (the same terminator LoRA training appends to its targets).
+        if any(len(a) < len(b) and b[:len(a)] == a for a in choice_ids for b in choice_ids):
+            eos = self.tokenizer.eos_token_id
+            term = [eos] if eos is not None else self.tokenizer("\n", add_special_tokens=False)["input_ids"]
+            choice_ids = [c + term for c in choice_ids]
         seqs = [prompt_ids + c for c in choice_ids]
         ids, mask = self._batch(seqs)
         t0 = time.perf_counter()
