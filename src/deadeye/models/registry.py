@@ -45,6 +45,10 @@ def load_model(spec: dict[str, Any], catalog: dict[str, dict[str, Any]] | None =
             from deadeye.models.tiny import ensure_tiny_model
             model_id = str(ensure_tiny_model(spec.pop("cache_dir", None)))
             meta.setdefault("family", "tiny-random")
+        # Base checkpoints get the plain rendering (see hf_backend). Many base tokenizers (e.g. Qwen2.5) still ship a
+        # chat template, so decide from the declared `instruct` flag, not from template presence.
+        if meta.get("instruct", cat.get("instruct")) is False:
+            spec.setdefault("use_chat_template", False)
         model = HFModel(model_id, **spec)
     elif backend == "openai":
         from deadeye.models.openai_backend import OpenAICompatModel

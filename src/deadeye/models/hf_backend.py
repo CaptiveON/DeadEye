@@ -75,6 +75,7 @@ class HFModel(LanguageModel):
         self.info = ModelInfo(id=model_id, backend="hf", params=None if self.quantized else n_params,
                               instruct=bool(self.tokenizer.chat_template), precision=precision,
                               extra={"counted_params": n_params, "device": self.device,
+                                     "chat_template": bool(self.use_chat_template and self.tokenizer.chat_template),
                                      "n_layers": int(getattr(self.model.config, "num_hidden_layers", 0) or 0)})
 
     # ------------------------------------------------------------------ helpers
@@ -189,6 +190,8 @@ class HFModel(LanguageModel):
     def close(self) -> None:
         try:
             del self.model
+            import gc
+            gc.collect()  # accelerate dispatch hooks form reference cycles; free the weights before empty_cache()
             if self.torch.cuda.is_available():
                 self.torch.cuda.empty_cache()
         except Exception:

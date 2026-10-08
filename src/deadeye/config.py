@@ -104,11 +104,17 @@ class RunConfig:
                 if cand.exists():
                     catalog = str(cand)
                     break
-        return cls(name=d.get("name", "run"), output_dir=d.get("output_dir", f"results/{d.get('name', 'run')}"),
-                   seeds=_seed_list(d.get("seeds"), 0, 20), train_seeds=_seed_list(d.get("train_seeds"), 100_000, 50),
-                   envs=envs, models=models, methods=methods, baselines=list(d.get("baselines", ["random", "oracle"])),
-                   illegal_action=d.get("illegal_action", "random_fallback"), log_steps=bool(d.get("log_steps", True)),
-                   log_prompts=bool(d.get("log_prompts", False)), catalog=catalog, notes=d.get("notes", ""), raw=d)
+        cfg = cls(name=d.get("name", "run"), output_dir=d.get("output_dir", f"results/{d.get('name', 'run')}"),
+                  seeds=_seed_list(d.get("seeds"), 0, 20), train_seeds=_seed_list(d.get("train_seeds"), 100_000, 50),
+                  envs=envs, models=models, methods=methods, baselines=list(d.get("baselines", ["random", "oracle"])),
+                  illegal_action=d.get("illegal_action", "random_fallback"), log_steps=bool(d.get("log_steps", True)),
+                  log_prompts=bool(d.get("log_prompts", False)), catalog=catalog, notes=d.get("notes", ""), raw=d)
+        train = set(cfg.train_seeds)
+        for env in envs:  # probe / LoRA / few-shot data come from train_seeds and must never be evaluated on
+            leak = train.intersection(cfg.episodes_for(env))
+            if leak:
+                raise ValueError(f"evaluation seeds of env {env.key!r} overlap train_seeds (e.g. {min(leak)})")
+        return cfg
 
     @classmethod
     def load(cls, path: str | Path) -> "RunConfig":

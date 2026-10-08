@@ -197,7 +197,7 @@ class Runner:
             # Cells that share one copy of the model run first; mutating cells (LoRA) come last and each gets a fresh
             # copy only after the shared one is released, so at most one copy of the weights is in memory.
             my_cells = sorted((c for c in cells if c.model is model_spec), key=lambda c: _method_mutates(c.method.name))
-            pending =[c for c in my_cells if self.force or not (self.cell_dir(c) / "summary.json").exists()]
+            pending = [c for c in my_cells if self.force or not (self.cell_dir(c) / "summary.json").exists()]
             if not pending:
                 for c in my_cells:
                     self._say(f"  skip (done) {'/'.join(c.path_parts)}")

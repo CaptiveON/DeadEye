@@ -121,3 +121,35 @@ def test_greedy_generation_ignores_checkpoint_repetition_penalty(tiny_model_path
           "repetition_penalty": 1.3}
     (d / "generation_config.json").write_text(json.dumps(gc))
     assert HFModel(str(d)).generate(MSGS, max_new_tokens=16).text == want
+
+
+def test_close_frees_weights_held_in_reference_cycles(tiny_model_path):
+    """device_map="auto" dispatch hooks create reference cycles; close() must still release the weights so the runner
+    can load a fresh copy for LoRA without holding two copies in memory."""
+    import gc
+    import weakref
+    from accelerate.hooks import ModelHook, add_hook_to_module
+    from deadeye.models.hf_backend import HFModel
+    m = HFModel(str(tiny_model_path))
+    add_hook_to_module(m.model, ModelHook())
+    ref = weakref.ref(m.model)
+    gc.disable()
+    try:
+        m.close()
+        assert ref() is None
+    finally:
+        gc.enable()
+
+
+def test_registry_renders_declared_base_models_plainly(tiny_model_path):
+    """Base checkpoints (catalogue or spec `instruct: false`) use the plain rendering even if their tokenizer ships a
+    chat template (Qwen2.5 base tokenizers do); an explicit `use_chat_template` still wins."""
+    from deadeye.models.registry import load_model
+    path = str(tiny_model_path)
+    base = load_model({"backend": "hf", "id": path, "instruct": False})
+    assert base.render(MSGS).endswith("Output:\n") and base.info.extra["chat_template"] is False
+    assert load_model({"backend": "hf", "id": path}, {path: {"instruct": False}}).render(MSGS).endswith("Output:\n")
+    forced = load_model({"backend": "hf", "id": path, "instruct": False, "use_chat_template": True})
+    assert forced.render(MSGS).endswith("<|assistant|>\n")
+    inst = load_model({"backend": "hf", "id": path})
+    assert inst.render(MSGS).endswith("<|assistant|>\n") and inst.info.extra["chat_template"] is True

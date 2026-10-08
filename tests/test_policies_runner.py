@@ -153,3 +153,12 @@ def test_runner_never_holds_two_model_copies(tmp_path, monkeypatch):
         "methods": [{"name": "prompt_generate"}, {"name": "lora_sft"}, {"name": "prompt_score"}], "baselines": []})
     Runner(cfg).run()
     assert peak[0] == 1 and not live
+
+
+def test_config_rejects_evaluation_seeds_overlapping_training_seeds():
+    base = {"name": "x", "envs": [{"name": "bandit"}], "train_seeds": {"start": 100, "n": 50}}
+    RunConfig.from_dict({**base, "seeds": {"start": 0, "n": 100}})  # disjoint: fine
+    with pytest.raises(ValueError):
+        RunConfig.from_dict({**base, "seeds": {"start": 0, "n": 101}})
+    with pytest.raises(ValueError):  # a per-env episode override can also run into the training range
+        RunConfig.from_dict({**base, "seeds": {"start": 0, "n": 10}, "envs": [{"name": "blackjack", "n_episodes": 300}]})
