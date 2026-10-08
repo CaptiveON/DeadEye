@@ -184,3 +184,25 @@ Two entries are closest to the line. If the owner reads the rule more strictly, 
 - **Citations whose rendered form changed.** `alain2016probes` now renders as 2017; `zheng2025qwen3quant` as Zheng et al. (2026); `deepseekai2025r1` as Guo et al. (2025); `olmo2025olmo2` as Walsh et al. (2025); `qwen2024qwen25` as Yang et al. (2024); `hf2025smollm3` as Bakouch et al. (2025); `robinson2023mcsb` as Robinson and Wingate (2023). `\citet`/`\citep` update automatically, but check any hand-written author names next to these keys. At audit time `paper/sections/setup.tex` cites `qwen2024qwen25`, `olmo2025olmo2` and `deepseekai2025r1`, and `benchmark.tex`, `introduction.tex` and `related_work.tex` cite `robinson2023mcsb`.
 - **`docs/literature_review.md` (mechanical edit only).** A script replaced the 134 bracketed key groups in the prose with parenthetical Harvard citations using exactly the agsm labels above, keeping the order within each group and merging same-author runs as natbib does. It then appended a "Reference list" of the 106 cited works, generated from the audited bib and sorted in agsm order. A check confirmed that the text outside the 134 citation groups is byte-identical to the original, and re-running the script is a no-op. The `` `[key]` `` labels after each annotation header are inline code (identifiers linking each annotation to `refs.bib`), so they were left as they are.
 - **Review prose now out of date (not edited, per instructions).** The opening note still says "106 verified BibTeX entries" (now 113). In Section 4, the "Venues not confirmed, so cited as arXiv" list is out of date: "Look at the Text" (COLM 2024), PAPRIKA (ICML 2025), "Quantization Hurts Reasoning?" (COLM 2025), Alain and Bengio (ICLR 2017 Workshop Track) and GameBench (NeurIPS 2024 workshop) now cite published versions, and SmolLM2 stays arXiv. The "Author lists only partly confirmed" list is resolved (see table). The Reflexion line no longer matches the bib, which follows the NeurIPS author list. The Gemma 4 technical report now exists (arXiv:2607.02770), and its Apache-2.0 licence is confirmed by Google's announcement. OLMo 2 now cites the COLM 2025 version, and the Qwen3 quantisation study cites its 2026 Visual Intelligence version.
+
+## Added after the audit: decision models
+
+Nine entries on "System One" decision models (TypeSafe's Jev and its open-weight relatives) were added on
+8 October 2026 for the comparison section. They are official announcements, documentation and model cards of
+the releasing organisations (TypeSafe AI, Cloudflare, Perplexity, the Kev repository) plus TechCrunch and The
+New Stack reporting. Kev's README was read directly; the TypeSafe, Cloudflare, Perplexity and TechCrunch pages
+were confirmed through search-engine renderings of the pages themselves because direct fetches were blocked
+from the writing environment. TechCrunch bylines are not recorded and should be added when the pages are
+reachable: Harvard style prefers the journalist's name over the publication's.
+
+| key | source type | verified via |
+|---|---|---|
+| typesafe2026jev | official announcement | typesafe.ai blog (search rendering) |
+| typesafe2026choice | official documentation | docs.typesafe.ai (search rendering) |
+| typesafe2026systemone | official documentation | docs.typesafe.ai (search rendering) |
+| techcrunch2026jev | reporting | techcrunch.com (search rendering, dated 18 Sep 2026) |
+| techcrunch2026decisionmodels | reporting | techcrunch.com (search rendering, dated 1 Oct 2026) |
+| palmer2026kev | software + model cards | github.com/jaredpalmer/kev README (fetched) |
+| cloudflare2026clef | official announcement | blog.cloudflare.com and developers.cloudflare.com changelog (search rendering) |
+| perplexity2026decider | model card + docs | huggingface.co/perplexity-ai (search rendering) |
+| thenewstack2026jev | reporting | thenewstack.io (search rendering) |

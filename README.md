@@ -16,6 +16,7 @@ decision. Every table and figure in the paper is produced by `deadeye report` fr
 - Peer-testing guide: [`docs/peer_testing.md`](docs/peer_testing.md)
 - Literature review and verified bibliography: [`docs/literature_review.md`](docs/literature_review.md), [`paper/refs.bib`](paper/refs.bib)
 - Model ladders: [`docs/model_ladders.md`](docs/model_ladders.md), [`configs/models.yaml`](configs/models.yaml)
+- Comparison with Jev and the open-weight decision models: section 7 of the plan and [`configs/decision_models.yaml`](configs/decision_models.yaml)
 
 ## Install
 
@@ -49,7 +50,7 @@ deadeye compare results/pilot_cpu --pair "loan:Qwen__Qwen2.5-0.5B-Instruct/promp
 | Layer | Contents |
 |---|---|
 | Environments (`deadeye.envs`) | `bandit`, `contextual_bandit`, `loan` (semantic tabular decisions, with OOD shifts), `gridworld`, `tictactoe`, `blackjack`, `support` (customer-support triage under a written policy); each seeded, with an oracle and numeric features |
-| Backends (`deadeye.models`) | `hf` (generate, exact action log-likelihoods, hidden states, LoRA), `openai` (any OpenAI-compatible server; first-token scoring), `mock` and a tiny random model for CI |
+| Backends (`deadeye.models`) | `hf` (generate, exact action log-likelihoods, hidden states, LoRA), `openai` (any OpenAI-compatible server; first-token scoring), `decision` (System One decision models: TypeSafe Jev, Kev, Cloudflare Clef and compatibles, scored on their returned probabilities), `mock` and a tiny random model for CI |
 | Methods (`deadeye.policies`) | `prompt_free` (the unconverted assistant, for before/after comparisons), `prompt_generate` (zero/few-shot, CoT), `prompt_score`, `probe` (linear head on hidden states), `lora_sft` (behaviour cloning), `feature_probe` (no-LM control), plus `random`, `oracle`, `ucb1` |
 | Runner (`deadeye.runner`) | factorial (env x model x method) over paired seeds, resumable, logs every decision with the raw output, parsed action, legal set and oracle action |
 | Statistics (`deadeye.metrics`) | normalised scores (random = 0, oracle = 1), bootstrap CIs, IQM, paired permutation tests, Holm correction, power calculation |

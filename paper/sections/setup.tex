@@ -87,6 +87,11 @@ which \texttt{deadeye.metrics.episodes\_needed} implements. With $\alpha=0.05$ a
 
 A cell is excluded only if its model fails to load or its run crashes, never because of its outcome, and Appendix~\ref{app:prereg} lists every excluded cell.
 
+\subsection{Decision models}
+\label{sec:setup:decision}
+
+A fourth backend, \texttt{decision}, speaks the System One protocol of Jev and its open-weight relatives \citep{typesafe2026choice,palmer2026kev,cloudflare2026clef}: the rendered task description and observation go out as the state, the legal actions as the criteria of a single choice question, and the returned probabilities are used exactly as the log-likelihoods of \texttt{prompt\_score}. The configuration \texttt{configs/decision\_models.yaml} evaluates Jev through its hosted API, Kev at 0.8B, 4B and 9B through its local server, and Clef and Clef-flash through Workers AI, next to the same Qwen3.5 base checkpoints converted by our own scoring, probe and LoRA methods. Only scoring applies to a decision model; it cannot generate, so the free-reply and generation conditions are skipped for it. This comparison is exploratory and was added after the pre-registration: the hosted model's training data and architecture are unknown, so contamination cannot be checked, its latency includes network time and is reported separately from the local measurements, and we state no hypothesis about it. What it can show is whether a conversion that anyone can reproduce on open weights reaches the decision quality of the hosted product on tasks with a known optimum, and at what cost.
+
 \subsection{Pre-registration}
 \label{sec:setup:prereg}
 

@@ -54,6 +54,7 @@ class ScoreResult:
     prompt_tokens: int
     latency_s: float
     choice_tokens: list[int] = field(default_factory=list)
+    extra: dict[str, Any] = field(default_factory=dict)  # backend-specific extras (e.g. a decision model's confidence)
 
 
 @dataclass

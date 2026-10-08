@@ -323,7 +323,36 @@ edit. See `docs/compute_budget.md`.
 
 ---
 
-## 7. Extensions after v1.0
+## 7. Jev and the decision-model wave: where DeadEye sits
+
+TypeSafe AI's Jev (September 2026) is a hosted "System One" model: it takes a state and typed questions and
+returns a chosen option, a probability for every allowed answer and a confidence, and it never writes
+prose. Its weights, architecture and training data are closed. Within weeks, open-weight relatives appeared
+that speak the same protocol: Kev (a LoRA adapter plus a small pointer head on Qwen3.5 and Qwen3.8 bases,
+0.8B to 27B, Apache-2.0, with a local server), Cloudflare's Clef and Clef-flash (frozen Qwen3.8-27B and
+Qwen3.5-9B with a routing head and low-rank adapters, served on Workers AI), Perplexity's pplx-decider
+(a Qwen3.8-27B fine-tune) and Amazon's Strands Decider. All of their published numbers are label accuracies
+on classification panels, mostly measured by the vendors themselves.
+
+In this project's terms, these products are the probe and LoRA conversions productised, exposed through
+the likelihood-scoring interface. That makes them a natural comparison, and the harness treats them as a
+fourth backend (`decision`) that sends the task description and observation as the state and the legal
+actions as the criteria of one choice question. `configs/decision_models.yaml` evaluates Jev through its API,
+Kev through its local server, Clef through Workers AI, and the same Qwen3.5 bases converted by our own
+methods, on the seven tasks with their known optimal policies. The comparison is exploratory and is kept
+out of the pre-registered hypotheses, because the hosted model cannot be controlled for training data or
+contamination and its latency includes the network. What it can answer is the practical question behind
+the whole project: does a conversion anyone can reproduce on open weights reach the decision quality of
+the hosted product on tasks with a known optimum, and at what cost per decision?
+
+| What Jev offers | DeadEye equivalent | Difference |
+|---|---|---|
+| probabilities over allowed answers, no text | `prompt_score` on any open model | ours reads the base model's own likelihoods; Jev's head is trained for calibration |
+| a trained decision head on a frozen base | `probe` (logistic head on hidden states) | ours is trained on oracle labels for the task at hand, in minutes on a CPU |
+| adapted weights returning decisions | `lora_sft` | ours clones a known optimal policy; theirs is trained on classification corpora |
+| calibrated confidence | the probe's class probabilities and the score margins | calibration is measured against the oracle, not assumed |
+
+## 8. Extensions after v1.0
 
 - Preference / RL fine-tuning (DPO on oracle-vs-model action pairs, GRPO with environment reward)
   as a sixth conversion method; the `hf` backend already exposes everything needed.

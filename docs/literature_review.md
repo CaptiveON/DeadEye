@@ -688,7 +688,40 @@ These were found or suggested but could not be fully verified. They are **not** 
 
 **Unverified but worth tracking (Section 4):** the emotion-sensitive SLM-agent study (arXiv:2604.06562) and the TinyLLM edge-agent benchmark (arXiv:2511.22138).
 
+## 6. Decision models (added after the review)
+
+In September 2026 TypeSafe AI released Jev, a hosted "System One" model that answers typed questions about a
+state with a chosen option, a probability for every allowed answer and a confidence, and never generates text
+(TypeSafe AI, 2026a; TypeSafe AI, 2026b; TechCrunch, 2026a). Open-weight relatives that speak the same
+protocol followed within weeks: Kev, a LoRA adapter and pointer head on Qwen3.5 and Qwen3.8 bases under
+Apache-2.0 (Palmer, 2026); Cloudflare's Clef and Clef-flash, a routing head and low-rank adapters on frozen
+Qwen3.8-27B and Qwen3.5-9B (Cloudflare, 2026); Perplexity's pplx-decider, a Qwen3.8-27B fine-tune (Perplexity
+AI, 2026); and an Amazon decider (TechCrunch, 2026b; The New Stack, 2026). Their published evaluations are
+label accuracies on classification panels, largely vendor-measured. For our hypotheses they matter in two ways:
+they are the probe and LoRA conversions (H3, H4) turned into products, which makes the within-base comparison
+in `configs/decision_models.yaml` a test of whether the open recipe reaches the hosted product; and they
+sharpen H4, since their interface is likelihood scoring without generation, the condition under which we
+predict format failures vanish.
+
 ## Reference list
+
+Cloudflare (2026) 'Introducing Clef: our open-source decision models, and new RL fine-tuning platform', Cloudflare blog, 1 October. Available at: https://blog.cloudflare.com/clef-decision-models/ (Accessed: 8 October 2026).
+
+Palmer, J. (2026) *Kev: open decision models on Qwen3.5 and Qwen3.8 with a System One-compatible server*. Available at: https://github.com/jaredpalmer/kev (Accessed: 8 October 2026).
+
+Perplexity AI (2026) *pplx-decider-v1.1-27b: model card*. Available at: https://huggingface.co/perplexity-ai/pplx-decider-v1.1-27b (Accessed: 8 October 2026).
+
+TechCrunch (2026a) 'A new kind of AI model from a ChatGPT inventor is thrilling developers', 18 September. Available at: https://techcrunch.com/2026/09/18/a-new-kind-of-ai-model-from-a-chatgpt-inventor-is-thrilling-developers/ (Accessed: 8 October 2026).
+
+TechCrunch (2026b) 'Amazon releases its own Jev clone as decision models flood the web', 1 October. Available at: https://techcrunch.com/2026/10/01/amazon-releases-its-own-jev-clone-as-decision-models-flood-the-web/ (Accessed: 8 October 2026).
+
+The New Stack (2026) 'TypeSafe launched Jev because sequential LLMs are "totally useless for computers"'. Available at: https://thenewstack.io/typesafe-jev-system-one/ (Accessed: 8 October 2026).
+
+TypeSafe AI (2026a) 'Introducing System One Models & Jev', TypeSafe AI blog. Available at: https://typesafe.ai/blog/introducing-system-one-models-and-jev (Accessed: 8 October 2026).
+
+TypeSafe AI (2026b) *Choice; System One; API reference: TypeSafe AI documentation*. Available at: https://docs.typesafe.ai/ (Accessed: 8 October 2026).
+
+
 
 *Generated mechanically from `paper/refs.bib` after the 2026-10-08 audit (see `docs/references_audit.md`). In-text citations above follow the labels that `agsm.bst` with natbib produces for the paper.*
 

@@ -1,0 +1,41 @@
+# Comparison with "System One" decision models: TypeSafe's hosted Jev and the open-weight Jev-compatible models
+# (Kev, Cloudflare Clef). They speak one protocol: state + typed questions in, probabilities over allowed answers
+# out. DeadEye sends the task description and observation as the state and the legal actions as the choice
+# criteria, and scores them like every other method, so the comparison is on identical tasks, seeds and metrics.
+#
+# Access: Jev needs TYPESAFE_API_KEY (early access); Kev runs locally
+#   (`uv run --extra serve python -m kev.serve --run jaredpalmer/kev-9b --port 8009`, see github.com/jaredpalmer/kev);
+#   Clef runs on Workers AI (CLOUDFLARE_ACCOUNT_ID in the URL, CLOUDFLARE_API_TOKEN) or from the Apache-2.0 weights.
+# The open-weight rows use the Hugging Face backend on the same Qwen bases the decision models were built from,
+# converted by DeadEye's own methods, which gives the controlled part of the comparison.
+# This comparison is exploratory (not pre-registered): the hosted model's training data is unknown.
+name: decision_models
+output_dir: results/decision_models
+seeds: {start: 0, n: 100}
+train_seeds: {start: 100000, n: 100}
+envs:
+  - {name: bandit, params: {n_arms: 5, horizon: 50, gap: 0.2}}
+  - {name: contextual_bandit, params: {n_actions: 3, dim: 4, horizon: 30}}
+  - {name: loan, params: {n_applicants: 20}}
+  - {name: gridworld, params: {size: 6}}
+  - {name: tictactoe, params: {opponent: random}, n_episodes: 300}
+  - {name: blackjack, params: {hands_per_episode: 20}, n_episodes: 100}
+  - {name: support, params: {n_tickets: 20}}
+models:
+  # hosted, closed weights
+  - {backend: decision, id: jev, base_url: "https://api.typesafe.ai/v1/systemone", api_key_env: TYPESAFE_API_KEY, family: jev, label: jev}
+  # open weights, Jev-compatible protocol (local server or Workers AI)
+  - {backend: decision, id: kev-latest, base_url: "http://127.0.0.1:8009/v1/systemone", params: 800000000, family: kev, label: kev-0.8b}
+  - {backend: decision, id: kev-latest, base_url: "http://127.0.0.1:8010/v1/systemone", params: 4000000000, family: kev, label: kev-4b}
+  - {backend: decision, id: kev-latest, base_url: "http://127.0.0.1:8011/v1/systemone", params: 9000000000, family: kev, label: kev-9b}
+  - {backend: decision, id: "@cf/cloudflare/clef-flash", base_url: "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/ai/run/@cf/cloudflare/clef-flash", api_key_env: CLOUDFLARE_API_TOKEN, params: 9000000000, family: clef, label: clef-flash}
+  - {backend: decision, id: "@cf/cloudflare/clef", base_url: "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/ai/run/@cf/cloudflare/clef", api_key_env: CLOUDFLARE_API_TOKEN, params: 27000000000, family: clef, label: clef}
+  # the same open bases, converted by DeadEye's methods (repo ids to be confirmed against the hub before running)
+  - {backend: hf, id: Qwen/Qwen3.5-0.8B-Base, params: 800000000, family: qwen3.5, instruct: false}
+  - {backend: hf, id: Qwen/Qwen3.5-4B-Base, params: 4000000000, family: qwen3.5, instruct: false}
+  - {backend: hf, id: Qwen/Qwen3.5-9B-Base, params: 9000000000, family: qwen3.5, instruct: false}
+methods:
+  - {name: prompt_score}                                                    # the only method a decision model supports
+  - {name: probe, params: {layer: mid, n_train_episodes: 100}}             # skipped automatically for API models
+  - {name: lora_sft, params: {n_train_episodes: 100, infer: score, lora: {r: 16, alpha: 32, epochs: 2, lr: 0.0002, batch_size: 8}}}
+baselines: [random, oracle, ucb1]

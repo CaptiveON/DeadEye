@@ -85,7 +85,7 @@ class PromptScorePolicy(_PromptPolicy):
         scores = {labels[i]: round(res.logprobs[i], 4) for i in range(len(labels))}
         return Decision(action=lm[labels[best]], raw_output=f"scores={scores}", latency_s=res.latency_s,
                         prompt_tokens=res.prompt_tokens, completion_tokens=0,
-                        extra={"scores": scores, "choice_tokens": res.choice_tokens})
+                        extra={"scores": scores, "choice_tokens": res.choice_tokens, **res.extra})
 
     def describe(self) -> dict[str, Any]:
         return {**super().describe(), "length_norm": self.length_norm}

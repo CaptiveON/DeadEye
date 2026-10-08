@@ -1,6 +1,6 @@
 """Build a backend from a model spec (a dict from the YAML config).
 
-Spec fields: ``backend`` (hf | openai | mock), ``id`` (repo id, served model name, or mock name), plus
+Spec fields: ``backend`` (hf | openai | decision | mock), ``id`` (repo id, served model name, or mock name), plus
 backend-specific options. Optional metadata (``params``, ``family``, ``instruct``) overrides what the
 backend can infer; the catalogue in ``configs/models.yaml`` supplies it when ``catalog`` is given.
 """
@@ -53,6 +53,9 @@ def load_model(spec: dict[str, Any], catalog: dict[str, dict[str, Any]] | None =
     elif backend == "openai":
         from deadeye.models.openai_backend import OpenAICompatModel
         model = OpenAICompatModel(model_id, **spec)
+    elif backend == "decision":
+        from deadeye.models.decision_api import DecisionAPIModel
+        model = DecisionAPIModel(model_id, **spec)
     else:
         raise ValueError(f"unknown backend {backend!r}")
     for k in ("params", "family", "instruct", "precision"):

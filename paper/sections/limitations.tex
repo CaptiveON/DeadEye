@@ -25,5 +25,8 @@ Our fine-tuning is behavior cloning with LoRA, at one rank and one learning rate
 \paragraph{Statistics.}
 One hundred episodes per cell detect a difference of 0.10 with power 0.8 only when the standard deviation of the paired differences is at most about 0.36 (Section~\ref{sec:setup:stats}). On tasks whose anchors lie close together, blackjack above all, power is lower even with twenty hands per episode, and a null result there is weak evidence of no effect; we report the minimum detectable difference wherever it exceeds the effect of interest. The anchors themselves are means over the evaluation seeds and we treat them as fixed, so their sampling error is not propagated into the confidence intervals of \norm{}; the paired tests do not depend on the anchors.
 
+\paragraph{Decision models.}
+The comparison with Jev and its open-weight relatives is exploratory. The hosted model's weights, architecture and training data are closed, so none of the controls we apply to our own ladders (same recipe, same training seeds, contamination checks on open data) apply to it, and its latency includes a network round trip. The open-weight decision models were trained on classification panels, not on our tasks, so a gap in either direction may reflect training data as much as method.
+
 \paragraph{Hardware.}
 Latency depends on the hardware, the batch size and the implementation. Our cost comparisons hold for the hardware we report, and token counts are the better guide for other settings.

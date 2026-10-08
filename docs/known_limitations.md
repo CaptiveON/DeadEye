@@ -44,6 +44,17 @@ than bugs.
   scoring resolves ties at the floor in favour of the first option. Results from served models are
   reported separately and never enter the scale curves. *Decision.*
 
+## Decision-model comparison
+
+- **Jev is closed.** Its weights, architecture and training data are not public, so none of the controls
+  used for the open ladders apply to it, and its latency includes a network round trip. The comparison in
+  `configs/decision_models.yaml` is exploratory and stays out of the pre-registered hypotheses. *Decision.*
+- **Protocol mapping.** The decision backend sends the task description and observation as the state and
+  the legal actions as the criteria of one choice question, with a fixed instruction; a decision model never
+  sees few-shot demonstrations or a chain-of-thought budget, so only the scoring condition applies to it.
+- **Base-model identity.** The open decision models are built on Qwen3.5 and Qwen3.8 checkpoints whose repo
+  ids must be confirmed on the hub before the run; the catalogue does not list them as verified.
+
 ## Statistics
 
 - Normalisation anchors (random and oracle means) are treated as fixed; their sampling uncertainty is

@@ -108,7 +108,7 @@ Method & What it uses & Training data & Backends\\
 \midrule
 \texttt{prompt\_free} & the unconverted assistant's free reply, with an action extracted when the text contains one & none & \texttt{hf}, \texttt{openai}\\
 \texttt{prompt\_generate} & generated text, parsed into an action (zero-shot, few-shot or chain-of-thought) & none & \texttt{hf}, \texttt{openai}\\
-\texttt{prompt\_score} & log-likelihood of each legal label as a continuation of the prompt & none & \texttt{hf} (exact), \texttt{openai} (first token)\\
+\texttt{prompt\_score} & log-likelihood of each legal label as a continuation of the prompt & none & \texttt{hf} (exact), \texttt{openai} (first token), \texttt{decision} (a decision model's probabilities)\\
 \texttt{probe} & last-token hidden state at one layer, with a logistic-regression head & oracle-labeled states from training seeds & \texttt{hf}\\
 \texttt{lora\_sft} & LoRA adapters trained by behavior cloning, then exact scoring & the same states & \texttt{hf}\\
 \texttt{feature\_probe} & no language model: the same head on the task's numeric features & the same states & any\\

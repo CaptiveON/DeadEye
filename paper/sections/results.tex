@@ -82,6 +82,13 @@ We take the hypotheses in their pre-registered order and test each against its c
 
 \paragraph{Result.} With chain-of-thought, scores on gridworld and tic-tac-toe change by \result{[mean paired difference with CI]} for models of 4B and above and by \result{[difference with CI]} below 2B. Thinking mode changes them by \result{[difference with CI]} for Qwen3-4B and \result{[difference with CI]} for Qwen3-8B. H7a is \result{[supported / falsified]} and H7b is \result{[supported / falsified]}. Reasoning multiplies latency per decision by \result{[factor]}, and latency-normalized score is lower with reasoning at \result{[number]} of \result{[number]} sizes; H7c is \result{[supported / falsified]}. In \result{[fraction]} of thinking-mode decisions the reasoning used up the token budget before any action appeared. \todo{Sweep: \texttt{deadeye compare results/sweep\_gpu -{}-env gridworld -{}-a <model>/prompt\_generate\_cot -{}-b <model>/prompt\_generate}. Ablations: Qwen3-4B-think/gen\_cot\_long against Qwen3-4B-nothink/prompt\_generate. Thinking-mode cells with a 16-token budget are dominated by truncation and should not enter H7. Latency from cells.csv (latency\_per\_decision\_s).}
 
+\subsection{Exploratory: decision models against open-weight conversions}
+\label{sec:res:decision}
+
+\paragraph{Setting.} Not pre-registered; see Section~\ref{sec:setup:decision}. Jev (hosted), Kev 0.8B/4B/9B and Clef-flash/Clef (open weights, Jev-compatible) are scored on the seven tasks and compared with the Qwen3.5 bases they are built on, converted by \texttt{prompt\_score}, \texttt{probe} and \texttt{lora\_sft}.
+
+\paragraph{Result.} On the policy-following tasks (support, loan) the hosted model scores \result{[\norm{} with CI per task]}, Kev-9B \result{[\norm{}]} and the LoRA conversion of the same base \result{[\norm{}]}; on the tasks that need in-context learning or planning (contextual bandit, gridworld) the decision models score \result{[\norm{}]}, \result{[above / below]} our conversions of the same bases. Per decision, the hosted API took \result{[ms, median and p95, network included]} against \result{[ms]} for the local 9B conversion; the vendor's own latency figures \citep{cloudflare2026clef} are \result{[consistent / not consistent]} with ours. \todo{Fill from report/decision\_models; pair by seed with deadeye compare; keep this section descriptive, with no hypothesis test beyond the confidence intervals.}
+
 \subsection{Quality versus inference cost}
 \label{sec:res:cost}
 
