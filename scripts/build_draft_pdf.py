@@ -116,6 +116,8 @@ def strip_wrappers(tex: str) -> str:
     tex = re.sub(r"\\begin\{(table|figure)\}\[[^\]]*\]", r"\\begin{\1}", tex)
     tex = tex.replace("\\centering\\small", "").replace("\\centering", "").replace("\\small", "")
     tex = re.sub(r"\\(begin|end)\{footnotesize\}", "", tex)
+    # run-in paragraph headings become bold lead-ins rather than numbered level-4 headings
+    tex = re.sub(r"\\paragraph\{((?:[^{}]|\{[^{}]*\})*)\}\s*", lambda m: "\n\n\\textbf{" + m.group(1) + "} ", tex)
     return tex
 
 
