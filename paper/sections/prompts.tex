@@ -1,7 +1,7 @@
 % Generated from `deadeye show-prompt <env> --seed 0 --steps 2 [variant flags]` (default environment
 % parameters). Do not edit by hand: regenerate after any prompt change and before the prereg-v1 tag.
 
-\subsection{Multi-armed bandit (\texttt{bandit})}
+\subsection{Multi-armed bandit (\texorpdfstring{\texttt{bandit}}{bandit})}
 \label{app:prompt:bandit}
 
 System message (identical in every variant; a single line in the prompt, wrapped here):
@@ -130,7 +130,7 @@ Reply with exactly one line of the form `Action: <name>` and nothing else.
 \end{verbatim}
 \end{footnotesize}
 
-\subsection{Contextual bandit (\texttt{contextual\_bandit})}
+\subsection{Contextual bandit (\texorpdfstring{\texttt{contextual\_bandit}}{contextual\_bandit})}
 \label{app:prompt:contextual_bandit}
 
 System message (identical in every variant; a single line in the prompt, wrapped here):
@@ -244,7 +244,7 @@ Reply with exactly one line of the form `Action: <name>` and nothing else.
 \end{verbatim}
 \end{footnotesize}
 
-\subsection{Loan approval (\texttt{loan})}
+\subsection{Loan approval (\texorpdfstring{\texttt{loan}}{loan})}
 \label{app:prompt:loan}
 
 System message (identical in every variant; a single line in the prompt, wrapped here):
@@ -378,7 +378,7 @@ Reply with exactly one line of the form `Action: <name>` and nothing else.
 \end{verbatim}
 \end{footnotesize}
 
-\subsection{Gridworld navigation (\texttt{gridworld})}
+\subsection{Gridworld navigation (\texorpdfstring{\texttt{gridworld}}{gridworld})}
 \label{app:prompt:gridworld}
 
 System message (identical in every variant; a single line in the prompt, wrapped here):
@@ -511,7 +511,7 @@ Reply with exactly one line of the form `Action: <name>` and nothing else.
 \end{verbatim}
 \end{footnotesize}
 
-\subsection{Tic-tac-toe (\texttt{tictactoe})}
+\subsection{Tic-tac-toe (\texorpdfstring{\texttt{tictactoe}}{tictactoe})}
 \label{app:prompt:tictactoe}
 
 System message (identical in every variant; a single line in the prompt, wrapped here):
@@ -525,7 +525,7 @@ avoidable.
 \end{verbatim}
 \end{footnotesize}
 
-\paragraph{Default: free-form generation, action names.} Command: \texttt{deadeye show-prompt tictactoe -{}-seed 0 -{}-steps 2}; oracle action in this state: \texttt{7}.
+\paragraph{Default: free-form generation, action names.} Command: \texttt{deadeye show-prompt tictactoe -{}-seed 0 -{}-steps 2}; oracle action in this state: \texttt{5}.
 
 \begin{footnotesize}
 \begin{verbatim}
@@ -539,7 +539,7 @@ Reply with exactly one line of the form `Action: <name>` and nothing else.
 \end{verbatim}
 \end{footnotesize}
 
-\paragraph{Letter action format.} Command: \texttt{deadeye show-prompt tictactoe -{}-seed 0 -{}-steps 2 -{}-action-format letter}; oracle action in this state: \texttt{7}.
+\paragraph{Letter action format.} Command: \texttt{deadeye show-prompt tictactoe -{}-seed 0 -{}-steps 2 -{}-action-format letter}; oracle action in this state: \texttt{5}.
 
 \begin{footnotesize}
 \begin{verbatim}
@@ -558,7 +558,7 @@ Reply with exactly one line of the form `Action: <letter>` and nothing else.
 \end{verbatim}
 \end{footnotesize}
 
-\paragraph{Chain of thought.} Command: \texttt{deadeye show-prompt tictactoe -{}-seed 0 -{}-steps 2 -{}-cot}; oracle action in this state: \texttt{7}.
+\paragraph{Chain of thought.} Command: \texttt{deadeye show-prompt tictactoe -{}-seed 0 -{}-steps 2 -{}-cot}; oracle action in this state: \texttt{5}.
 
 \begin{footnotesize}
 \begin{verbatim}
@@ -573,7 +573,7 @@ the form `Action: <name>`.
 \end{verbatim}
 \end{footnotesize}
 
-\paragraph{Likelihood scoring (also the LoRA training and inference prompt).} Command: \texttt{deadeye show-prompt tictactoe -{}-seed 0 -{}-steps 2 -{}-method prompt\_score}; oracle action in this state: \texttt{7}.
+\paragraph{Likelihood scoring (also the LoRA training and inference prompt).} Command: \texttt{deadeye show-prompt tictactoe -{}-seed 0 -{}-steps 2 -{}-method prompt\_score}; oracle action in this state: \texttt{5}.
 
 \begin{footnotesize}
 \begin{verbatim}
@@ -587,7 +587,7 @@ Answer with only the action name of your chosen action.
 \end{verbatim}
 \end{footnotesize}
 
-\paragraph{Two oracle demonstrations from training seeds.} Command: \texttt{deadeye show-prompt tictactoe -{}-seed 0 -{}-steps 2 -{}-few-shot 2}; oracle action in this state: \texttt{7}.
+\paragraph{Two oracle demonstrations from training seeds.} Command: \texttt{deadeye show-prompt tictactoe -{}-seed 0 -{}-steps 2 -{}-few-shot 2}; oracle action in this state: \texttt{5}.
 
 \begin{footnotesize}
 \begin{verbatim}
@@ -619,7 +619,7 @@ Reply with exactly one line of the form `Action: <name>` and nothing else.
 \end{verbatim}
 \end{footnotesize}
 
-\subsection{Blackjack (\texttt{blackjack})}
+\subsection{Blackjack (\texorpdfstring{\texttt{blackjack}}{blackjack})}
 \label{app:prompt:blackjack}
 
 System message (identical in every variant; a single line in the prompt, wrapped here):
@@ -640,7 +640,7 @@ the dealer busts; equal totals tie. A two-card 21 pays extra. Maximise your expe
 \begin{verbatim}
 [[user]]
 Your cards: 7, 2, 10 (total 19).
-Dealer shows: 10.
+Dealer shows: 3.
 Legal actions: hit, stand
 Reply with exactly one line of the form `Action: <name>` and nothing else.
 \end{verbatim}
@@ -652,7 +652,7 @@ Reply with exactly one line of the form `Action: <name>` and nothing else.
 \begin{verbatim}
 [[user]]
 Your cards: 7, 2, 10 (total 19).
-Dealer shows: 10.
+Dealer shows: 3.
 Legal actions: A, B
   A = hit
   B = stand
@@ -666,7 +666,7 @@ Reply with exactly one line of the form `Action: <letter>` and nothing else.
 \begin{verbatim}
 [[user]]
 Your cards: 7, 2, 10 (total 19).
-Dealer shows: 10.
+Dealer shows: 3.
 Legal actions: hit, stand
 Think step by step in at most three short sentences, then end your reply with a final line of
 the form `Action: <name>`.
@@ -679,7 +679,7 @@ the form `Action: <name>`.
 \begin{verbatim}
 [[user]]
 Your cards: 7, 2, 10 (total 19).
-Dealer shows: 10.
+Dealer shows: 3.
 Legal actions: hit, stand
 Answer with only the action name of your chosen action.
 \end{verbatim}
@@ -691,21 +691,21 @@ Answer with only the action name of your chosen action.
 \begin{verbatim}
 [[user]]
 Your cards: 8, 5 (total 13).
-Dealer shows: 4.
+Dealer shows: 2.
 Legal actions: hit, stand
 Reply with exactly one line of the form `Action: <name>` and nothing else.
 [[assistant]]
 Action: stand
 [[user]]
-Your cards: 6, 10, 2 (total 18).
+Your cards: 6, 10 (total 16).
 Dealer shows: 7.
 Legal actions: hit, stand
 Reply with exactly one line of the form `Action: <name>` and nothing else.
 [[assistant]]
-Action: stand
+Action: hit
 [[user]]
 Your cards: 7, 2, 10 (total 19).
-Dealer shows: 10.
+Dealer shows: 3.
 Legal actions: hit, stand
 Reply with exactly one line of the form `Action: <name>` and nothing else.
 \end{verbatim}

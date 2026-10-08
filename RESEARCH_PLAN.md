@@ -44,8 +44,11 @@ algorithmic reference on the bandit.
 
 ### 1.2 Tasks
 
-All environments are procedurally generated with a seed, have a known oracle, and are Markov in
-their text rendering (the text alone suffices to act optimally). They span the decision structures
+All environments are procedurally generated with a seed and have a known oracle, and every rendering
+contains the full observable state. For the two bandit tasks the oracle is clairvoyant: it knows the
+hidden arm means or weights, which no policy can read off the text. There it serves as the upper
+anchor and as the label source for cloning, while UCB1 marks what an algorithm that sees only the
+history can achieve; the cloned policies learn a history-based approximation of "pull the best arm". They span the decision structures
 that matter in practice:
 
 | Environment | Decision structure | Oracle | Headline metric |
@@ -149,9 +152,12 @@ format failures from `steps.jsonl` (search for `"legal": false`).
 
 ### Phase 2: main sweep on GPU (week 3-5)
 
-The within-family ladders with all methods, 100 episodes per cell (300 for blackjack), 100 training
-episodes for probes and LoRA. `configs/sweep_gpu.yaml` has 27 model entries and 6 methods; cells are
-resumable so the sweep can be split across machines by `--only-model`.
+The within-family ladders with all methods, 100 episodes per cell (300 for tic-tac-toe, whose outcomes
+are -1/0/+1; blackjack episodes are 20 hands each), 100 training episodes for probes and LoRA.
+`configs/sweep_gpu.yaml` has 33 model entries (Qwen2.5 base and instruct at all seven sizes, Qwen3 base
+up to 14B and post-trained up to 32B, SmolLM2, Gemma 3) and 6 methods; `configs/sweep_controls.yaml`
+adds the fully open Pythia and OLMo 2 ladders. Cells are resumable, so a sweep can be split across
+machines by `--only-model` (`scripts/run_sweep.sh` does this).
 
 ```bash
 deadeye estimate configs/sweep_gpu.yaml --seconds-per-decision 0.3
@@ -165,18 +171,31 @@ in the paper; the quantisation ablation in Phase 3 measures what int4 costs at s
 
 ### Phase 3: ablations (week 5-7)
 
-`configs/ablations.yaml` isolates one factor per block on three sizes of the Qwen2.5 ladder (1.5B,
-7B, 14B) plus Qwen3 4B/8B for thinking. Run blocks separately, e.g.
+The five files in `configs/ablations/` isolate one factor each on three sizes of the Qwen2.5 ladder
+(1.5B, 7B, 14B), plus the Qwen3 ladder for thinking: `quantisation` (H5), `prompting` (demonstrations,
+chain of thought, temperature, action encoding, history window, length normalisation), `thinking` (H7),
+`adaptation` (data budget and probe layer, H3) and `tasks` (observation format, action-space size,
+adversary strength, planning depth, and the out-of-distribution loan variants, which train the
+adaptation methods in distribution through `train_params`). Each block is a few hundred cells; run
+them one at a time:
 
 ```bash
-deadeye run configs/ablations.yaml --only-method gen_cot
-deadeye run configs/ablations.yaml --only-env loan_sign_flip
+deadeye run configs/ablations/quantisation.yaml
+deadeye run configs/ablations/tasks.yaml --only-env loan_sign_flip
+deadeye report results/ablations --out report/ablations      # aggregates all blocks
 ```
 
 ### Phase 4: analysis and writing (week 7-9)
 
-`deadeye report` produces every table and figure; `deadeye compare` runs the paired tests behind each
-claim in the paper. Fill `paper/sections/*.tex` from the report's `tables/` and `figures/`. The
+`deadeye report` produces every table and figure, including the scale-slope fits (`slopes.csv`) behind
+H1 and H4b; `deadeye compare` runs the paired permutation tests behind each claim, one hypothesis family
+per call so that the Holm correction is applied within the family:
+
+```bash
+deadeye compare results/sweep_gpu \
+  --pair "loan:Qwen__Qwen2.5-1.5B-Instruct/lora_sft vs loan:Qwen__Qwen2.5-14B-Instruct/prompt_generate" \
+  --pair "gridworld:Qwen__Qwen2.5-1.5B-Instruct/lora_sft vs gridworld:Qwen__Qwen2.5-14B-Instruct/prompt_generate"
+``` Fill `paper/sections/*.tex` from the report's `tables/` and `figures/`. The
 literature review in `docs/literature_review.md` and the bibliography in `paper/refs.bib` are
 pre-verified.
 
@@ -209,9 +228,14 @@ TMLR, COLM, or an agents / small-models workshop), post the preprint.
   (2000 resamples). Paired comparisons (same seeds): permutation test on sign flips of the paired
   differences, 5000 permutations, Holm-corrected within each family of comparisons. Effect sizes:
   paired Cohen's d.
-- Sample size: `deadeye.metrics.episodes_needed(effect, sd)`; with the pilot's SD of normalised
-  score per task (expected 0.2-0.4) and a smallest effect of interest of 0.10, 32-130 episodes per
-  cell are needed; the sweep uses 100 (300 for the high-variance blackjack task).
+- Sample size: for a paired comparison, `n = ((z_{0.975} + z_{0.8}) * sd_diff / effect)^2`, implemented as
+  `deadeye.metrics.episodes_needed(effect, sd)`. With a smallest effect of interest of 0.10, 100 episodes
+  suffice only when the SD of the paired differences is at most 0.36; the pilot measures that SD per
+  task and the pre-registration records it. Tasks whose episode outcome is a single -1/0/+1 game have
+  SDs near 1 in normalised units, which is why tic-tac-toe uses 300 episodes and blackjack packs 20
+  hands into each of its 100 episodes (the SD of an episode mean falls with the square root of the
+  number of hands). Where even that leaves the detectable effect above 0.10, the paper reports the
+  smallest effect the design could have detected instead of claiming a null.
 - Scale curves: fit `score = a + b * log10(params)` per (family, method, task) by least squares with
   bootstrap CIs on `b`; H1 is supported if `b > 0` with CI excluding 0 for `prompt_generate` and the
   slopes differ by task class; H4 is supported if `b` under `prompt_score` is less than half of `b`
@@ -255,8 +279,8 @@ gridworld about 1000, tictactoe about 400, blackjack about 600; roughly 12000 de
 | 7B-14B | one 24 GB GPU (bf16) | 0.1-0.25 | 2-4 |
 | 32B-72B | one 80 GB GPU (int4) | 0.4-1.0 | 7-17 |
 
-The full sweep is about 120 GPU-hours on a single 80 GB GPU or 2-3 days on 2-4 GPUs. The ablation
-config is roughly the same again. `deadeye estimate <config>` recomputes these numbers for any
+The full sweep is about 150 GPU-hours on a single 80 GB GPU or 2-4 days on 2-4 GPUs. The five
+ablation blocks together are of the same order again, and they can be run and reported independently. `deadeye estimate <config>` recomputes these numbers for any
 edit. See `docs/compute_budget.md`.
 
 ---

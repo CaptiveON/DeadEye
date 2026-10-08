@@ -179,11 +179,86 @@ def tables_to_markdown(tables: dict[str, pd.DataFrame]) -> str:
 
 
 def tables_to_latex(tables: dict[str, pd.DataFrame]) -> dict[str, str]:
+    """Bare tabular environments (no float, caption or label) so the paper can place and caption them."""
     out = {}
     for name, t in tables.items():
-        cap = name.replace("_", " ")
-        out[name] = t.to_latex(escape=True, caption=f"DeadEye results: {cap}.", label=f"tab:{name}", na_rep="--")
+        out[name] = t.to_latex(escape=True, na_rep="--")
     return out
+
+
+# ---------------------------------------------------------------------- scale slopes
+def scale_slopes(cells: pd.DataFrame, episodes: pd.DataFrame, n_boot: int = 1000, seed: int = 0, min_models: int = 3) -> pd.DataFrame:
+    """Least-squares slope of normalised score on log10(parameters), per (family, method, environment).
+
+    Fitted on cell means; the 95% CI comes from resampling episodes within every cell and refitting.
+    A pseudo-environment ``__mean__`` fits the cross-task mean score per model. Ratios of slopes between
+    methods (H4b) can be formed from the ``boot`` samples stored in the ``_boot`` column.
+    """
+    mc = cells[(cells["model_key"] != "_baseline") & cells["params"].notna()].copy()
+    if mc.empty:
+        return pd.DataFrame()
+    eps_by_cell = {cid: g["norm"].to_numpy(dtype=float) for cid, g in episodes.groupby("cell_id")}
+    rng = np.random.default_rng(seed)
+    rows = []
+
+    def fit(x, y):
+        b, a = np.polyfit(x, y, 1)
+        pred = a + b * x
+        ss_res = float(np.sum((y - pred) ** 2))
+        ss_tot = float(np.sum((y - y.mean()) ** 2))
+        return b, a, (1 - ss_res / ss_tot) if ss_tot > 0 else float("nan")
+
+    groups = list(mc.groupby(["family", "method_key", "env_key"], dropna=False))
+    # cross-task mean per model
+    for (fam, mk), g in mc.groupby(["family", "method_key"], dropna=False):
+        if g["env_key"].nunique() < 2:
+            continue
+        groups.append(((fam, mk, "__mean__"), g))
+    for (fam, mk, ek), g in groups:
+        if ek == "__mean__":
+            per_model = g.groupby(["model_key", "params"])["cell_id"].apply(list).reset_index()
+        else:
+            per_model = g.drop_duplicates("model_key")[["model_key", "params", "cell_id"]].copy()
+            per_model["cell_id"] = per_model["cell_id"].map(lambda c: [c])
+        if len(per_model) < min_models:
+            continue
+        x = np.log10(per_model["params"].astype(float).to_numpy())
+        y = np.array([np.nanmean([np.nanmean(eps_by_cell[c]) for c in cids]) for cids in per_model["cell_id"]])
+        if np.isnan(y).any():
+            continue
+        b, a, r2 = fit(x, y)
+        boots = []
+        for _ in range(n_boot):
+            yb = []
+            for cids in per_model["cell_id"]:
+                vals = []
+                for c in cids:
+                    v = eps_by_cell[c]
+                    v = v[~np.isnan(v)]
+                    vals.append(rng.choice(v, size=len(v), replace=True).mean() if len(v) else np.nan)
+                yb.append(np.nanmean(vals))
+            boots.append(fit(x, np.array(yb))[0])
+        boots = np.array(boots)
+        rows.append({"family": fam, "method_key": mk, "env_key": ek, "n_models": len(per_model),
+                     "params_min": float(per_model["params"].min()), "params_max": float(per_model["params"].max()),
+                     "slope": b, "slope_ci_lo": float(np.percentile(boots, 2.5)), "slope_ci_hi": float(np.percentile(boots, 97.5)),
+                     "intercept": a, "r2": r2, "_boot": boots})
+    return pd.DataFrame(rows)
+
+
+def slope_ratio(slopes: pd.DataFrame, family: str, env_key: str, method_a: str, method_b: str) -> dict[str, float]:
+    """Ratio slope_a / slope_b with a bootstrap CI (independent resamples), e.g. prompt_score over prompt_generate."""
+    sa = slopes[(slopes["family"] == family) & (slopes["env_key"] == env_key) & (slopes["method_key"] == method_a)]
+    sb = slopes[(slopes["family"] == family) & (slopes["env_key"] == env_key) & (slopes["method_key"] == method_b)]
+    if sa.empty or sb.empty:
+        return {}
+    ba, bb = sa["_boot"].iloc[0], sb["_boot"].iloc[0]
+    with np.errstate(divide="ignore", invalid="ignore"):
+        r = ba / bb
+    r = r[np.isfinite(r)]
+    return {"ratio": float(sa["slope"].iloc[0] / sb["slope"].iloc[0]) if sb["slope"].iloc[0] != 0 else float("nan"),
+            "ci_lo": float(np.percentile(r, 2.5)) if len(r) else float("nan"),
+            "ci_hi": float(np.percentile(r, 97.5)) if len(r) else float("nan")}
 
 
 # ---------------------------------------------------------------------- pairwise comparisons
@@ -438,13 +513,21 @@ def build_report(result_dirs: list[str | Path], out_dir: str | Path, paper_dir: 
     cells.to_csv(out / "cells.csv", index=False)
     episodes.to_csv(out / "episodes.csv", index=False)
     tables = {**method_tables(cells), **secondary_tables(cells)}
-    (out / "tables.md").write_text(tables_to_markdown(tables))
-    tex = tables_to_latex(tables)
     (out / "tables").mkdir(exist_ok=True)
-    for name, s in tex.items():
-        (out / "tables" / f"{name}.tex").write_text(s)
     pw = pairwise_by_model(episodes, cells)
     pw.to_csv(out / "pairwise_methods.csv", index=False)
+    slopes = scale_slopes(cells, episodes)
+    if len(slopes):
+        slopes.drop(columns=["_boot"]).to_csv(out / "slopes.csv", index=False)
+        st = slopes.drop(columns=["_boot", "intercept"]).copy()
+        st["slope"] = st.apply(lambda r: f"{r['slope']:+.3f} [{r['slope_ci_lo']:+.3f}, {r['slope_ci_hi']:+.3f}]", axis=1)
+        st = st.drop(columns=["slope_ci_lo", "slope_ci_hi"])
+        (out / "tables" / "slopes.tex").write_text(st.to_latex(index=False, escape=True, float_format="%.2f"))
+        tables["scale_slopes"] = st.set_index(["family", "method_key", "env_key"])
+    (out / "tables.md").write_text(tables_to_markdown(tables))
+    tex = tables_to_latex({k: v for k, v in tables.items() if k != "scale_slopes"})
+    for name, s_ in tex.items():
+        (out / "tables" / f"{name}.tex").write_text(s_)
     figs = [fig_scale(cells, out / "fig_scale"), fig_illegal(cells, out / "fig_illegal"), fig_pareto(cells, out / "fig_pareto"),
             fig_heatmap(cells, out / "fig_heatmap")]
     figs = [f for f in figs if f is not None]
@@ -459,4 +542,4 @@ def build_report(result_dirs: list[str | Path], out_dir: str | Path, paper_dir: 
                 (pdir / "figures" / pdf.name).write_bytes(pdf.read_bytes())
         for name, s in tex.items():
             (pdir / "tables" / f"{name}.tex").write_text(s)
-    return {"cells": cells, "episodes": episodes, "tables": tables, "figures": figs, "html": html, "pairwise": pw}
+    return {"cells": cells, "episodes": episodes, "tables": tables, "figures": figs, "html": html, "pairwise": pw, "slopes": slopes}

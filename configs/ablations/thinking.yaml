@@ -1,0 +1,26 @@
+# Ablation block: reasoning budget (H7). The same Qwen3 weights with thinking off and on, and a long budget.
+name: ablations_thinking
+output_dir: results/ablations/thinking
+seeds: {start: 0, n: 100}
+train_seeds: {start: 100000, n: 100}
+envs:
+  - {name: bandit, params: {n_arms: 5, horizon: 50, gap: 0.2}}
+  - {name: contextual_bandit, params: {n_actions: 3, dim: 4, horizon: 30}}
+  - {name: loan, params: {n_applicants: 20}}
+  - {name: gridworld, params: {size: 6}}
+  - {name: tictactoe, params: {opponent: random}, n_episodes: 300}
+  - {name: blackjack, params: {hands_per_episode: 20}, n_episodes: 100}
+models:
+  - {backend: hf, id: Qwen/Qwen3-1.7B, chat_template_kwargs: {enable_thinking: false}, label: Qwen3-1.7B-nothink}
+  - {backend: hf, id: Qwen/Qwen3-1.7B, chat_template_kwargs: {enable_thinking: true}, label: Qwen3-1.7B-think}
+  - {backend: hf, id: Qwen/Qwen3-4B, chat_template_kwargs: {enable_thinking: false}, label: Qwen3-4B-nothink}
+  - {backend: hf, id: Qwen/Qwen3-4B, chat_template_kwargs: {enable_thinking: true}, label: Qwen3-4B-think}
+  - {backend: hf, id: Qwen/Qwen3-8B, chat_template_kwargs: {enable_thinking: false}, label: Qwen3-8B-nothink}
+  - {backend: hf, id: Qwen/Qwen3-8B, chat_template_kwargs: {enable_thinking: true}, label: Qwen3-8B-think}
+  - {backend: hf, id: Qwen/Qwen3-14B, chat_template_kwargs: {enable_thinking: false}, label: Qwen3-14B-nothink}
+  - {backend: hf, id: Qwen/Qwen3-14B, chat_template_kwargs: {enable_thinking: true}, label: Qwen3-14B-think}
+methods:
+  - {name: prompt_generate, params: {max_new_tokens: 16}}
+  - {name: prompt_generate, params: {max_new_tokens: 512}, label: gen_budget512}
+  - {name: prompt_generate, params: {max_new_tokens: 2048}, label: gen_budget2048}
+baselines: [random, oracle, ucb1]

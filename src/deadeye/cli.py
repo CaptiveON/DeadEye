@@ -136,24 +136,50 @@ def estimate(config: Path, seconds_per_decision: float = 1.0) -> None:
 
 
 @app.command()
-def compare(results: Path, env: str, a: str, b: str) -> None:
-    """Paired permutation test between two cells: A and B are 'model_key/method_key' strings."""
-    from deadeye.metrics import cohens_d_paired, paired_permutation_test
+def compare(results: list[Path], pair: list[str] = typer.Option(..., "--pair", help="'ENV:MODEL/METHOD vs ENV:MODEL/METHOD'"),
+            n_perm: int = 5000, out: Optional[Path] = None) -> None:
+    """Paired permutation tests for one family of comparisons, Holm-corrected together.
+
+    Each --pair names two cells as ENV:MODEL_KEY/METHOD_KEY; the two sides may live in different environments
+    (e.g. loan vs loan_sign_flip), in which case episodes are paired by seed index.
+    """
+    from deadeye.metrics import cohens_d_paired, holm_correction, paired_permutation_test
     from deadeye.report import load_results, normalize_results
-    cells, eps = load_results([results])
+    cells, eps = load_results([str(r) for r in results])
     cells, eps = normalize_results(cells, eps)
-    sel = {}
-    for name, spec in (("a", a), ("b", b)):
-        mk, meth = spec.split("/", 1)
-        s = eps[(eps["env_key"] == env) & (eps["model_key"] == mk) & (eps["method_key"] == meth)].set_index("seed")["norm"]
-        if s.empty:
-            raise typer.BadParameter(f"no episodes for {spec} in {env}")
-        sel[name] = s
-    common = sel["a"].index.intersection(sel["b"].index)
-    xa, xb = sel["a"].loc[common].to_numpy(), sel["b"].loc[common].to_numpy()
-    p = paired_permutation_test(xa, xb)
-    console.print(f"{env}: n={len(common)} paired episodes; mean(A)={xa.mean():.3f} mean(B)={xb.mean():.3f} "
-                  f"diff={xa.mean() - xb.mean():+.3f}; paired permutation p={p:.4f}; Cohen's d={cohens_d_paired(xa, xb):.2f}")
+
+    def side(spec: str):
+        spec = spec.strip()
+        env_key, rest = spec.split(":", 1)
+        mk, meth = rest.split("/", 1)
+        s_ = eps[(eps["env_key"] == env_key) & (eps["model_key"] == mk) & (eps["method_key"] == meth)]
+        if s_.empty:
+            raise typer.BadParameter(f"no episodes for {spec}")
+        return s_.set_index("seed")["norm"]
+
+    rows = []
+    for spec in pair:
+        if " vs " not in spec:
+            raise typer.BadParameter(f"pair must look like 'A vs B': {spec}")
+        a_spec, b_spec = spec.split(" vs ", 1)
+        sa, sb = side(a_spec), side(b_spec)
+        common = sa.index.intersection(sb.index)
+        xa, xb = sa.loc[common].to_numpy(), sb.loc[common].to_numpy()
+        rows.append({"a": a_spec.strip(), "b": b_spec.strip(), "n": len(common), "mean_a": xa.mean(), "mean_b": xb.mean(),
+                     "diff": xa.mean() - xb.mean(), "p": paired_permutation_test(xa, xb, n_perm=n_perm), "d": cohens_d_paired(xa, xb)})
+    adj = holm_correction([r["p"] for r in rows])
+    t = Table("A", "B", "n", "mean A", "mean B", "diff", "p", "p (Holm)", "Cohen d")
+    for r, pa in zip(rows, adj):
+        r["p_holm"] = pa
+        t.add_row(r["a"], r["b"], str(r["n"]), f"{r['mean_a']:.3f}", f"{r['mean_b']:.3f}", f"{r['diff']:+.3f}", f"{r['p']:.4f}", f"{pa:.4f}", f"{r['d']:.2f}")
+    console.print(t)
+    if out is not None:
+        import csv
+        with open(out, "w", newline="") as f:
+            w = csv.DictWriter(f, fieldnames=list(rows[0]))
+            w.writeheader()
+            w.writerows(rows)
+        console.print(f"[green]written[/green] {out}")
 
 
 def smoke_config(output_dir: str) -> dict:

@@ -22,6 +22,14 @@ than bugs.
 - **Few-shot demonstrations in tic-tac-toe** come from other seeds and may show the agent playing the
   other mark; each demonstration states its own mark in the observation text. *Decision.*
 
+- **Clairvoyant bandit oracles.** On the bandit and contextual bandit the oracle knows the hidden
+  means or weights, so it is an upper anchor rather than a policy any agent could implement from the
+  text; UCB1 marks the achievable reference, and probes or LoRA trained on oracle labels learn a
+  history-based approximation. *Decision.*
+- **Blackjack episodes** can bundle several hands (`hands_per_episode`, 20 in the sweep) so that the
+  per-episode normalised score has a workable variance; each hand is still a separate decision problem
+  and the oracle is unchanged.
+
 ## Methods and runner
 
 - **Training caps.** Probes and LoRA stop collecting states at `max_train_states` (default 50000);

@@ -8,69 +8,69 @@ families:
     license: Apache-2.0
     notes: "Same recipe at three sizes; base + Instruct. Ideal sub-1B ladder; runs on CPU."
     models:
-      - {id: HuggingFaceTB/SmolLM2-135M, params: 135000000, instruct: false, verified: true}
+      - {id: HuggingFaceTB/SmolLM2-135M, params: 135000000, instruct: false, verified: false}
       - {id: HuggingFaceTB/SmolLM2-135M-Instruct, params: 135000000, instruct: true, verified: true}
-      - {id: HuggingFaceTB/SmolLM2-360M, params: 362000000, instruct: false, verified: true}
+      - {id: HuggingFaceTB/SmolLM2-360M, params: 362000000, instruct: false, verified: false}
       - {id: HuggingFaceTB/SmolLM2-360M-Instruct, params: 362000000, instruct: true, verified: true}
       - {id: HuggingFaceTB/SmolLM2-1.7B, params: 1710000000, instruct: false, verified: true}
-      - {id: HuggingFaceTB/SmolLM2-1.7B-Instruct, params: 1710000000, instruct: true, verified: true}
+      - {id: HuggingFaceTB/SmolLM2-1.7B-Instruct, params: 1710000000, instruct: true, verified: false}
   - name: qwen2.5
     license: "Apache-2.0 (3B: Qwen Research licence; 72B: Qwen licence)"
     notes: "Seven dense sizes with one recipe, base + Instruct at every size: the primary scale ladder."
     models:
-      - {id: Qwen/Qwen2.5-0.5B, params: 494000000, instruct: false, verified: true}
-      - {id: Qwen/Qwen2.5-0.5B-Instruct, params: 494000000, instruct: true, verified: true}
-      - {id: Qwen/Qwen2.5-1.5B, params: 1540000000, instruct: false, verified: true}
+      - {id: Qwen/Qwen2.5-0.5B, non_embedding_params: 360000000, params: 494000000, instruct: false, verified: true}
+      - {id: Qwen/Qwen2.5-0.5B-Instruct, non_embedding_params: 360000000, params: 494000000, instruct: true, verified: true}
+      - {id: Qwen/Qwen2.5-1.5B, params: 1540000000, instruct: false, verified: false}
       - {id: Qwen/Qwen2.5-1.5B-Instruct, params: 1540000000, instruct: true, verified: true}
-      - {id: Qwen/Qwen2.5-3B, params: 3090000000, instruct: false, verified: true}
-      - {id: Qwen/Qwen2.5-3B-Instruct, params: 3090000000, instruct: true, verified: true}
-      - {id: Qwen/Qwen2.5-7B, params: 7620000000, instruct: false, verified: true}
-      - {id: Qwen/Qwen2.5-7B-Instruct, params: 7620000000, instruct: true, verified: true}
+      - {id: Qwen/Qwen2.5-3B, non_embedding_params: 2770000000, params: 3090000000, instruct: false, verified: true}
+      - {id: Qwen/Qwen2.5-3B-Instruct, non_embedding_params: 2770000000, params: 3090000000, instruct: true, verified: true}
+      - {id: Qwen/Qwen2.5-7B, non_embedding_params: 6530000000, params: 7620000000, instruct: false, verified: false}
+      - {id: Qwen/Qwen2.5-7B-Instruct, non_embedding_params: 6530000000, params: 7620000000, instruct: true, verified: true}
       - {id: Qwen/Qwen2.5-14B, params: 14700000000, instruct: false, verified: true}
-      - {id: Qwen/Qwen2.5-14B-Instruct, params: 14700000000, instruct: true, verified: true}
+      - {id: Qwen/Qwen2.5-14B-Instruct, params: 14700000000, instruct: true, verified: false}
       - {id: Qwen/Qwen2.5-32B, params: 32500000000, instruct: false, verified: true}
-      - {id: Qwen/Qwen2.5-32B-Instruct, params: 32500000000, instruct: true, verified: true}
-      - {id: Qwen/Qwen2.5-72B, params: 72700000000, instruct: false, verified: true}
-      - {id: Qwen/Qwen2.5-72B-Instruct, params: 72700000000, instruct: true, verified: true}
+      - {id: Qwen/Qwen2.5-32B-Instruct, params: 32500000000, instruct: true, verified: false}
+      - {id: Qwen/Qwen2.5-72B, non_embedding_params: 70000000000, params: 72700000000, instruct: false, verified: true}
+      - {id: Qwen/Qwen2.5-72B-Instruct, non_embedding_params: 70000000000, params: 72700000000, instruct: true, verified: true}
   - name: qwen3
     license: Apache-2.0
     notes: "Hybrid thinking / non-thinking in one checkpoint (chat_template_kwargs: {enable_thinking: bool}). Base checkpoints carry the -Base suffix."
     models:
-      - {id: Qwen/Qwen3-0.6B-Base, params: 600000000, instruct: false, verified: false}
-      - {id: Qwen/Qwen3-0.6B, params: 600000000, instruct: true, verified: false}
+      - {id: Qwen/Qwen3-0.6B-Base, non_embedding_params: 440000000, params: 600000000, instruct: false, verified: false}
+      - {id: Qwen/Qwen3-0.6B, non_embedding_params: 440000000, params: 600000000, instruct: true, verified: false}
       - {id: Qwen/Qwen3-1.7B-Base, params: 1700000000, instruct: false, verified: false}
       - {id: Qwen/Qwen3-1.7B, params: 1700000000, instruct: true, verified: false}
-      - {id: Qwen/Qwen3-4B-Base, params: 4000000000, instruct: false, verified: false}
-      - {id: Qwen/Qwen3-4B, params: 4000000000, instruct: true, verified: true}
-      - {id: Qwen/Qwen3-8B-Base, params: 8200000000, instruct: false, verified: true}
-      - {id: Qwen/Qwen3-8B, params: 8200000000, instruct: true, verified: true}
-      - {id: Qwen/Qwen3-14B-Base, params: 14800000000, instruct: false, verified: true}
-      - {id: Qwen/Qwen3-14B, params: 14800000000, instruct: true, verified: true}
-      - {id: Qwen/Qwen3-32B, params: 32800000000, instruct: true, verified: true}
+      - {id: Qwen/Qwen3-4B-Base, non_embedding_params: 3600000000, params: 4000000000, instruct: false, verified: false}
+      - {id: Qwen/Qwen3-4B, non_embedding_params: 3600000000, params: 4000000000, instruct: true, verified: false}
+      - {id: Qwen/Qwen3-8B-Base, non_embedding_params: 6950000000, params: 8200000000, instruct: false, verified: true}
+      - {id: Qwen/Qwen3-8B, non_embedding_params: 6950000000, params: 8200000000, instruct: true, verified: true}
+      - {id: Qwen/Qwen3-14B-Base, non_embedding_params: 13200000000, params: 14800000000, instruct: false, verified: true}
+      - {id: Qwen/Qwen3-14B, non_embedding_params: 13200000000, params: 14800000000, instruct: true, verified: false}
+      - {id: Qwen/Qwen3-32B, non_embedding_params: 31200000000, params: 32800000000, instruct: true, verified: true}
   - name: gemma3
     license: Gemma Terms of Use
     notes: "270M and 1B are text-only; 4B+ are multimodal (load the text tower via AutoModelForCausalLM)."
     models:
       - {id: google/gemma-3-270m, params: 268000000, instruct: false, verified: false}
       - {id: google/gemma-3-270m-it, params: 268000000, instruct: true, verified: false}
-      - {id: google/gemma-3-1b-pt, params: 1000000000, instruct: false, verified: true}
-      - {id: google/gemma-3-1b-it, params: 1000000000, instruct: true, verified: true}
+      - {id: google/gemma-3-1b-pt, non_embedding_params: 698000000, params: 1000000000, instruct: false, verified: true}
+      - {id: google/gemma-3-1b-it, non_embedding_params: 698000000, params: 1000000000, instruct: true, verified: true}
       - {id: google/gemma-3-4b-pt, params: 4300000000, instruct: false, verified: true}
       - {id: google/gemma-3-4b-it, params: 4300000000, instruct: true, verified: true}
-      - {id: google/gemma-3-12b-pt, params: 12200000000, instruct: false, verified: false}
-      - {id: google/gemma-3-12b-it, params: 12200000000, instruct: true, verified: false}
-      - {id: google/gemma-3-27b-pt, params: 27400000000, instruct: false, verified: true}
-      - {id: google/gemma-3-27b-it, params: 27400000000, instruct: true, verified: true}
+      - {id: google/gemma-3-12b-pt, non_embedding_params: 10759, params: 12200000000, instruct: false, verified: false}
+      - {id: google/gemma-3-12b-it, non_embedding_params: 10759, params: 12200000000, instruct: true, verified: false}
+      - {id: google/gemma-3-27b-pt, non_embedding_params: 25600, params: 27400000000, instruct: false, verified: false}
+      - {id: google/gemma-3-27b-it, non_embedding_params: 25600, params: 27400000000, instruct: true, verified: true}
   - name: llama3
     license: Llama 3.x Community License (gated repos; accept terms on the hub)
     notes: "3.2 (1B, 3B) and 3.1 (8B, 70B) share the Llama 3 recipe family but not identical data/recipe; treat cross-generation comparisons with care."
     models:
       - {id: meta-llama/Llama-3.2-1B, params: 1240000000, instruct: false, verified: true}
       - {id: meta-llama/Llama-3.2-1B-Instruct, params: 1240000000, instruct: true, verified: true}
-      - {id: meta-llama/Llama-3.2-3B, params: 3210000000, instruct: false, verified: true}
+      - {id: meta-llama/Llama-3.2-3B, params: 3210000000, instruct: false, verified: false}
       - {id: meta-llama/Llama-3.2-3B-Instruct, params: 3210000000, instruct: true, verified: true}
       - {id: meta-llama/Llama-3.1-8B, params: 8030000000, instruct: false, verified: true}
-      - {id: meta-llama/Llama-3.1-8B-Instruct, params: 8030000000, instruct: true, verified: true}
+      - {id: meta-llama/Llama-3.1-8B-Instruct, params: 8030000000, instruct: true, verified: false}
       - {id: meta-llama/Llama-3.1-70B-Instruct, params: 70600000000, instruct: true, verified: false}
   - name: pythia
     license: Apache-2.0

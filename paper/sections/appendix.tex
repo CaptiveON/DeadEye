@@ -1,1 +1,237 @@
-% appendix: to be written (see RESEARCH_PLAN.md and docs/literature_review.md)
+% Appendices. Section A inputs sections/prompts.tex, which is generated from `deadeye show-prompt`.
+
+\section{Prompts}
+\label{app:prompts}
+
+This appendix reproduces the messages a model receives, as printed by \texttt{deadeye show-prompt} for seed 0 after two oracle steps. The text is verbatim with two exceptions made for typesetting. Each system message is a single line in the prompt and is wrapped here at word boundaries, and the chain-of-thought instruction, also a single line, is wrapped the same way. Lines reading \texttt{[[user]]} and \texttt{[[assistant]]} mark the start of a chat message and are not part of the prompt. The system message is the same in every variant of a task, so it is shown once per task.
+
+A few details are easier to state than to show. The probe embeds the generation-mode prompt, shown as the default variant, and LoRA trains and acts with the scoring-mode prompt. The prompts use each environment's default parameters, which match the main sweep except for gridworld: the sweep's grid is $6\times6$, so its system message reads \texttt{6x6 grid} and \texttt{at most 24 moves} and its move counter \texttt{(max 24)}. For blackjack at seed 0 the hand ends with the second oracle action, a stand, so the state shown is the decision after one hit. In the tic-tac-toe state shown, cells 5, 6, 7 and 9 all win with certainty and the oracle picks cell 5, although cell 7 wins at once (Section~\ref{sec:analysis:agreement}). Few-shot demonstrations come from training seeds, so in tic-tac-toe they can show the agent playing the other mark, as the second demonstration below does; for the shifted loan variants they come from the unshifted task. When demonstrations are combined with chain-of-thought, each demonstration's assistant turn carries the fixed rationale \texttt{Choosing the best available option.} before its action line. Base checkpoints receive the same messages without a chat template: the system text, then each user turn after a line \texttt{Input:} and each assistant turn after a line \texttt{Output:}, separated by blank lines and ending with a line \texttt{Output:}.
+
+\input{sections/prompts}
+
+\section{Task parameters and generators}
+\label{app:envs}
+
+Table~\ref{tab:envparams} lists every task parameter with its default, its value in the main sweep and its values in the ablations. The rest of this appendix gives the generators in full.
+
+\begin{table}[h]
+\centering\small
+\caption{Task parameters. Ablation labels are the task-configuration keys used in \texttt{configs/ablations.yaml}; blank cells take the main-sweep value.}
+\label{tab:envparams}
+\begin{tabularx}{\linewidth}{@{}l l l l X@{}}
+\toprule
+Task & Parameter & Default & Main sweep & Ablation variants\\
+\midrule
+\texttt{bandit} & \texttt{n\_arms} & 5 & 5 & 10 (\texttt{bandit\_hard})\\
+ & \texttt{horizon} & 50 & 50 & 100 (\texttt{bandit\_hard})\\
+ & \texttt{gap} & 0.2 & 0.2 & \\
+ & \texttt{means\_mode} & \texttt{gap} & \texttt{gap} & \\
+ & \texttt{history\_format} & \texttt{summary} & \texttt{summary} & \texttt{raw} (\texttt{bandit\_rawhist})\\
+\midrule
+\texttt{contextual\_bandit} & \texttt{n\_actions} & 3 & 3 & \\
+ & \texttt{dim} & 4 & 4 & \\
+ & \texttt{horizon} & 30 & 30 & \\
+ & \texttt{history\_window} & 10 & 10 & \\
+ & \texttt{weight\_scale} & 2.0 & 2.0 & \\
+\midrule
+\texttt{loan} & \texttt{n\_applicants} & 20 & 20 & \\
+ & \texttt{interest\_rate} & 0.12 & 0.12 & \\
+ & \texttt{loss\_given\_default} & 0.6 & 0.6 & \\
+ & \texttt{shift} & \texttt{none} & \texttt{none} & \texttt{covariate} (\texttt{loan\_covariate\_shift}), \texttt{sign\_flip} (\texttt{loan\_sign\_flip}); both trained on \texttt{none}\\
+\midrule
+\texttt{gridworld} & \texttt{size} & 5 & 6 & 9 (\texttt{gridworld\_large})\\
+ & \texttt{n\_walls} & \texttt{size} & 6 & 16\\
+ & \texttt{max\_steps} & $4\times$\texttt{size} & 24 & 36\\
+ & \texttt{step\_penalty} & 0.02 & 0.02 & \\
+ & \texttt{min\_distance} & \texttt{size} & 6 & 9\\
+\midrule
+\texttt{tictactoe} & \texttt{opponent} & \texttt{random} & \texttt{random} & \texttt{minimax} (\texttt{tictactoe\_minimax})\\
+ & \texttt{agent\_mark} & \texttt{alternate} & \texttt{alternate} & \\
+\midrule
+\texttt{blackjack} & \texttt{natural\_bonus} & true & true & \\
+ & episodes & & 300 & 300\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\paragraph{Bandit.}
+With \texttt{means\_mode} set to \texttt{gap}, the index of the best arm is drawn uniformly and the reward table, $T$ rows by $K$ columns of Bernoulli draws, follows from the same generator; the alternative \texttt{uniform} mode, which draws each $\mu_a$ from $U(0.1, 0.9)$, is not used in our configurations. The pseudo-regret is computed from the true means, not from the realized rewards. The feature vector has $2K$ entries: each arm's share of the pulls so far and its empirical mean, with 0.5 for unpulled arms. An episode has exactly $T$ decisions.
+
+\paragraph{Contextual bandit.}
+The generator draws the weight matrix ($A\times d$, entries from $\mathcal{N}(0, 2^2)$), then the $T\times d$ contexts (entries from $\mathcal{N}(0,1)$, rounded to two decimals), then the $T\times A$ table of Bernoulli outcomes. Regret uses the true success probabilities. The feature vector is the current context. An episode has exactly $T$ decisions.
+
+\paragraph{Loan approval.}
+For each applicant the generator draws the annual income in thousands of dollars, $I=\operatorname{clip}(e^{Z},12,400)$ with $Z\sim\mathcal{N}(\ln 55, 0.5^2)$ and rounded to one decimal; the credit score, $C=\lfloor\operatorname{clip}(\mathcal{N}(680,70^2),300,850)\rfloor$; the age, uniform on $\{21,\dots,70\}$; the debt-to-income ratio, $D=\operatorname{clip}(\mathrm{Beta}(2,5),0,0.9)$ rounded to two decimals; the years in current employment, $E=\lfloor\operatorname{clip}(\mathrm{Exp}(\text{mean } 6),0,35)\rfloor$; the requested amount in thousands, $L=\operatorname{clip}(e^{Z'},1,150)$ with $Z'\sim\mathcal{N}(\ln 15, 0.6^2)$ and rounded to one decimal; and a purpose drawn uniformly from car, home improvement, small business, education and debt consolidation, with offsets $\rho=-0.2$, $-0.3$, $+0.6$, $0$ and $+0.4$ in Equation~\eqref{eq:loan}. Defaults are then drawn as Bernoulli$(p_i)$ for all applicants at once. Covariate shift replaces $\ln 55$ by $\ln 35$ and the credit mean 680 by 600 and leaves the default model unchanged; the sign flip sets $c=+1$ and leaves the applicant distribution unchanged, so a sign-flipped seed shows the same applicants as the unshifted one. The feature vector holds age, income, debt ratio, credit score, years employed and amount, standardized as $(x-\mu)/s$ with $(\mu,s)$ equal to $(45,15)$, $(55,40)$, $(0.28,0.15)$, $(680,70)$, $(6,6)$ and $(15,15)$, followed by a one-hot purpose. An episode has exactly $N$ decisions.
+
+\paragraph{Gridworld.}
+The generator permutes the $n^2$ cells; the first becomes the start, the second the goal and the next \texttt{n\_walls} become walls. It redraws until breadth-first search from the goal reaches the start at distance $d^\star\ge$ \texttt{min\_distance}. The feature vector holds the agent's and the goal's row and column divided by $n$, followed by the $n^2$ wall indicators. An episode has between $d^\star$ and $4n$ decisions.
+
+\paragraph{Tic-tac-toe.}
+The agent plays X on even seeds and moves first, and O on odd seeds, in which case the opponent opens. Both opponents draw from a generator seeded with $\sigma+10007$: the random opponent chooses uniformly among empty cells, and the minimax opponent chooses uniformly among the moves of highest depth-aware minimax value from its own point of view. The feature vector holds the nine cells as $+1$ for the agent's marks, $-1$ for the opponent's and 0 for empty ones. An episode has between two and five decisions.
+
+\paragraph{Blackjack.}
+A generator seeded with $\sigma+20011$ draws two streams of 32 cards, one for the player and one for the dealer, each card uniform over the 13 entries $\{1,\dots,9,10,10,10,10\}$. The player receives the first two cards of the player stream and the dealer the first two of the dealer stream, and the dealer's first card is shown. The dealer's hand is not checked for a natural before the player acts, and a player's two-card 21 against a dealer total of 21 is a tie. The feature vector is the hand total divided by 21, the soft-hand flag and the dealer's card divided by 10. An episode has at least one decision and is capped at 12.
+
+\paragraph{Other sources of randomness.}
+The random baseline uses one generator per cell, seeded with 0. When a decision is illegal, the substitute action comes from a generator seeded with $\sigma+7$ for that episode. The behavior policy that collects probe and LoRA training states uses one generator, seeded with 0, across all training episodes. Few-shot demonstrations take one state from each training seed in order, starting at 100000; a generator seeded with 12345 draws the number of oracle steps taken before the demonstration state uniformly from 0 to $\min(5,H)-1$, and if the episode ends during those steps the initial state is used instead. Greedy decoding uses no randomness; for sampled decoding the model's generator is seeded with the episode seed before each episode.
+
+\section{Pre-registered predictions and falsification criteria}
+\label{app:prereg}
+
+This appendix restates \texttt{docs/preregistration.md} as frozen at the tag \texttt{prereg-v1}. \todo{Re-copy after the tag is created, and record any deviation below.}
+
+\paragraph{Research questions.}
+RQ1: how does decision quality scale with parameter count within a model family, and does the slope depend on the task's decision structure? RQ2: does the conversion method (prompting, likelihood scoring, hidden-state probe, LoRA behavior cloning) change the dependence on scale? RQ3: which other factors (instruction tuning, quantization, reasoning budget, observation format, prompt encoding, adaptation data budget) move decision quality, and by how much? RQ4: what is the frontier of quality against inference cost?
+
+\paragraph{Predictions.}
+Table~\ref{tab:prereg} lists every prediction with its criteria. ``Score'' is the normalized score \norm{}; ``CI'' is a 95\% bootstrap confidence interval; slopes are the $b$ of Equation~\eqref{eq:slope}, fitted within one family on the sweep results.
+
+\begin{table}[h]
+\centering\small
+\caption{Pre-registered predictions with the conditions under which each is supported or falsified. Outcomes between the two conditions are reported as inconclusive.}
+\label{tab:prereg}
+\begin{tabularx}{\linewidth}{@{}l X X X@{}}
+\toprule
+& Prediction & Supported if & Falsified if\\
+\midrule
+H1a & Under \texttt{prompt\_generate}, $b>0$ in every family & the CI of $b$ excludes 0 and is positive for every family with at least four sizes & any family's CI includes 0 or is negative\\
+H1b & The slope is larger for gridworld and tic-tac-toe than for loan & the bootstrap CI of $b_{\text{plan}}-b_{\text{loan}}$ excludes 0 & that CI includes 0\\
+H2a & Instruct beats base under \texttt{prompt\_generate} at every size & the CI of the paired difference lies above 0 at 80\% of sizes or more & it does so at fewer than 50\% of sizes\\
+H2b & The instruct-minus-base gap under \texttt{probe} and \texttt{lora\_sft} is below 0.05 & the CI of the mean gap lies within $[-0.05, 0.05]$ & the CI excludes that interval\\
+H3a & The best \texttt{lora\_sft} model of at most 1.7B is at least as good as a \texttt{prompt\_generate} model ten times larger, in distribution & the CI of the paired difference is at or above 0 on at least 4 of 6 tasks & this holds on fewer than 3 tasks\\
+H3b & On \texttt{loan\_sign\_flip} and \texttt{loan\_covariate\_shift}, the small adapted model loses more relative to in distribution than the large model & the CI of the interaction excludes 0 & that CI includes 0\\
+H4a & The illegal-action rate under \texttt{prompt\_score} is 0 & by construction & not applicable\\
+H4b & $b_{\text{score}} < 0.5\,b_{\text{gen}}$ & the bootstrap CI of the ratio lies below 0.5 & the CI includes 0.5 or lies above it\\
+H5 & int4 costs less than 0.05 at 7B and above and more than 0.10 below 2B & the CIs of the paired bf16-minus-int4 differences meet both thresholds & either threshold fails\\
+H6a & No model under prompting reaches the UCB1 score on the bandit & every CI lies below the UCB1 score & any CI includes or exceeds it\\
+H6b & Summary history beats raw history for models below 2B & the paired CI lies above 0 for every such model & any such CI includes 0\\
+H7a & Thinking or chain-of-thought improves gridworld and tic-tac-toe at 4B and above & the paired CI lies above 0 & the CI includes 0\\
+H7b & Thinking or chain-of-thought does not improve models below 2B & the paired CI includes 0 or is negative & the CI lies above 0\\
+H7c & Latency-normalized score is lower with thinking at every size & the ratio of score to latency is lower at every size & it is higher at any size\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\paragraph{Design, analysis and exclusions.}
+Tasks, parameters and seeds are those of the configuration files at the tag; evaluation seeds are 0 to 99 (0 to 299 for blackjack) and training seeds 100000 to 100099, and prompts are frozen at the tag. The primary outcome is the normalized return per episode; secondary outcomes are the illegal-action rate, oracle agreement, the task metrics, and latency and tokens per decision. Each cell is summarized by its mean, interquartile mean and percentile bootstrap interval (2000 resamples); paired comparisons use sign-flip permutation tests (5000 permutations) with Holm's correction within each hypothesis's family of tests; slopes are fitted by ordinary least squares with bootstrap intervals over episodes. No episode is excluded because of its outcome. A cell is excluded only if its model fails to load or its run crashes, as recorded in \texttt{run\_manifest.json}, and no interim analysis changes the design. \todo{The pre-registration names configs/sweep\_gpu.yaml and configs/ablations.yaml; add configs/sweep\_controls.yaml (Pythia, OLMo 2) before the tag if the control ladders count toward H1 and H2.}
+
+\paragraph{Deviations and excluded cells.}
+\todo{Copy the deviations table of docs/preregistration.md (date, change, reason) and list every excluded cell with the reason recorded in run\_manifest.json; write ``none'' if there are none.}
+
+\section{Compute budget}
+\label{app:compute}
+
+The figures in this appendix are planning estimates from \texttt{docs/compute\_budget.md} and from \texttt{deadeye estimate}, not measurements. \todo{Replace them with measured GPU-hours per configuration, summed from eval\_time\_s and prepare\_time\_s in summary.json.}
+
+\begin{table}[h]
+\centering\small
+\caption{Planning estimates of seconds per decision, for prompts of 300 to 600 tokens and answers of 1 to 16 tokens.}
+\label{tab:compute}
+\begin{tabular}{@{}llll@{}}
+\toprule
+Setting & \texttt{prompt\_score} & \texttt{prompt\_generate} (16 tokens) & probe embedding\\
+\midrule
+135M to 360M, CPU (4 cores) & 0.15 to 0.4 & 0.3 to 0.8 & 0.1 to 0.3\\
+1.5B, CPU & 1 to 2 & 2 to 4 & 0.8 to 1.5\\
+1.5B, 24 GB GPU, bf16 & 0.03 & 0.08 & 0.02\\
+7B, 24 GB GPU, bf16 & 0.08 & 0.25 & 0.06\\
+14B, 24 GB GPU, bf16 & 0.15 & 0.5 & 0.12\\
+32B and 72B, 80 GB GPU, int4 & 0.4 and 0.9 & 1.5 and 3 & 0.3 and 0.7\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Chain-of-thought with 256 new tokens costs roughly ten times as much as direct generation, and thinking with up to 2048 tokens up to fifty times as much. LoRA training takes two to ten minutes per cell for a 7B model on one GPU and under a minute for models below 1B. In memory, bfloat16 weights need about 2 bytes per parameter and 4-bit weights about 0.6, plus a small key-value cache for these short prompts.
+
+Counted with \texttt{deadeye estimate}, which rolls out the oracle on the first ten seeds of each task configuration, one model and method in the main sweep make 5000 decisions on the bandit, 3000 on the contextual bandit, 2000 on loan approval, about 660 on gridworld, 330 on tic-tac-toe and 480 on blackjack, about 11500 in all. Weaker policies take more steps on gridworld, so these counts are lower bounds there. With 26 model entries and five language-model method configurations (the feature probe runs once, without a model), the main sweep makes about 1.5 million language-model decisions before probe and LoRA training; \texttt{deadeye estimate}, which multiplies by all six method configurations, reports about 1.8 million. The planning estimate in \texttt{RESEARCH\_PLAN.md} is about 120 GPU-hours on one 80 GB GPU. The ablation configuration crosses 12 models, 16 method configurations and 12 task configurations, about 6.1 million decisions, roughly four times the main sweep and with the most expensive reasoning budgets. \todo{RESEARCH\_PLAN.md and docs/compute\_budget.md put the ablations at about the same cost as the sweep; trim the ablation cross product to the pre-registered contrasts or revise the budget.} The CPU pilot takes six to twelve hours on a laptop.
+
+\section{Reproducibility checklist}
+\label{app:repro}
+
+The commands below rebuild every result in the paper from a fresh clone. Each step can be split across machines, since the runner skips cells whose summary already exists; \texttt{scripts/run\_sweep.sh} assigns models to GPUs.
+
+\begin{footnotesize}
+\begin{verbatim}
+git clone https://github.com/CaptiveON/DeadEye && cd DeadEye
+git checkout prereg-v1                       # frozen prompts, configs and analysis code
+python -m venv .venv && source .venv/bin/activate
+pip install torch --index-url https://download.pytorch.org/whl/cpu   # or a CUDA build
+pip install -e ".[hf,dev]" tabulate          # add ".[quant]" for int4/int8 on CUDA
+pytest -q                                    # unit and integration tests, no downloads
+deadeye smoke                                # every task and method, mock and tiny random model
+deadeye show-prompt gridworld --seed 3 --cot --few-shot 2
+deadeye estimate configs/sweep_gpu.yaml --seconds-per-decision 0.3
+deadeye run configs/pilot_cpu.yaml           # Phase 1 pilot
+deadeye run configs/sweep_gpu.yaml           # main sweep; split with --only-model
+deadeye run configs/sweep_controls.yaml      # Pythia and OLMo 2 controls
+deadeye run configs/ablations.yaml           # or block by block with --only-method / --only-env
+deadeye report results/sweep_gpu --out report/sweep_gpu
+deadeye compare results/sweep_gpu --env loan \
+    --a Qwen__Qwen2.5-1.5B-Instruct/prompt_score \
+    --b Qwen__Qwen2.5-1.5B-Instruct/prompt_generate
+cd paper && make assets && make              # regenerate tables and figures, build the PDF
+\end{verbatim}
+\end{footnotesize}
+
+\todo{make assets reports results/sweep\_gpu and results/ablations only; add results/sweep\_controls once the control ladders enter the paper.}
+
+\begin{itemize}
+  \item \textbf{Code and license.} The harness, configurations, prompts and analysis code are released under Apache-2.0; a Dockerfile builds a CPU image with the harness installed, whose entry point is the \texttt{deadeye} command.
+  \item \textbf{Tests.} \texttt{pytest} checks that oracles return legal actions and episodes terminate, that a seed reproduces its instance, and that the oracle beats the random policy on every task. It checks the gridworld oracle against shortest paths; that the tic-tac-toe oracle never loses to the minimax opponent and that expectimax does at least as well as minimax against the random one; the blackjack table on known hands; and that the dealer's cards do not depend on the player's hits. On the model side it checks exact scoring against a manual log-probability computation, including labels that are token prefixes of one another, that greedy generation is deterministic and ignores checkpoint repetition penalties, that hidden states differ by layer, that LoRA training changes the model, and that base checkpoints are rendered without a chat template. It also covers the parser on realistic outputs, the prompt structure, the illegal-action policies and the rule that fallback actions never count as agreement, the rejection of overlapping training and evaluation seeds, the selection of training variants, the runner end to end, and the report on smoke-test results.
+  \item \textbf{Determinism.} Instances, reward tables and card streams are fixed by the seed; greedy decoding, scoring and probes reproduce exactly on the same hardware and library versions.
+  \item \textbf{Provenance.} Every cell's \texttt{summary.json} records the model and method specification, precision, parameter count, seeds and timings, and \texttt{run\_manifest.json} the configuration and library versions (Section~\ref{sec:bench:logs}). \todo{Hardware and library versions as in Section~\ref{sec:setup:hw}.}
+  \item \textbf{Released data.} \texttt{summary.json} and \texttt{episodes.jsonl} for every cell, the per-decision \texttt{steps.jsonl} as an archive, and the generated report. \todo{Archive DOI.}
+  \item \textbf{Exclusions and deviations.} Listed in Appendix~\ref{app:prereg}.
+\end{itemize}
+
+\section{Model ladders: verified repository identifiers}
+\label{app:ladders}
+
+Table~\ref{tab:repoids} lists the Hugging Face repository identifiers that \texttt{docs/model\_ladders.md} records as verified, for the six ladders we use; an identifier counts as verified when it was seen exactly in an official listing. Cells marked ``not verified'' are configured checkpoints whose identifiers follow the family's naming pattern but have not been confirmed. Qwen3 also has separately trained instruct and thinking checkpoints at 4B, \texttt{Qwen/Qwen3-4B-Instruct-2507} and \texttt{Qwen/Qwen3-4B-Thinking-2507}, both verified, which offer a second contrast for H7. \todo{Verify the remaining identifiers before the sweep: Qwen2.5 1.5B and 7B base, Qwen2.5 14B and 32B Instruct, the Qwen3 0.6B, 1.7B, 4B and 14B post-trained checkpoints, SmolLM2 1.7B Instruct and the SmolLM2 360M base used in the pilot, and the Gemma 3 270M and 12B instruction-tuned checkpoints. configs/models.yaml marks several of these as verified, which disagrees with docs/model\_ladders.md.}
+
+\begin{table}[h]
+\centering\footnotesize
+\caption{Verified repository identifiers. For Pythia, the non-deduplicated identifiers (without \texttt{-deduped}) are verified as well; Pythia has no instruct checkpoints, and Qwen3 has no 32B base checkpoint.}
+\label{tab:repoids}
+\begin{tabularx}{\linewidth}{@{}l l X X@{}}
+\toprule
+Family & Size & Base or pre-trained & Instruct or post-trained\\
+\midrule
+Qwen2.5 & 0.5B & \texttt{Qwen/Qwen2.5-0.5B} & \texttt{Qwen/Qwen2.5-0.5B-Instruct}\\
+ & 1.5B & not verified & \texttt{Qwen/Qwen2.5-1.5B-Instruct}\\
+ & 3B & \texttt{Qwen/Qwen2.5-3B} & \texttt{Qwen/Qwen2.5-3B-Instruct}\\
+ & 7B & not verified & \texttt{Qwen/Qwen2.5-7B-Instruct}\\
+ & 14B & \texttt{Qwen/Qwen2.5-14B} & not verified\\
+ & 32B & \texttt{Qwen/Qwen2.5-32B} & not verified\\
+ & 72B & \texttt{Qwen/Qwen2.5-72B} & \texttt{Qwen/Qwen2.5-72B-Instruct}\\
+\midrule
+Qwen3 & 0.6B, 1.7B, 4B & not verified & not verified\\
+ & 8B & \texttt{Qwen/Qwen3-8B-Base} & \texttt{Qwen/Qwen3-8B}\\
+ & 14B & \texttt{Qwen/Qwen3-14B-Base} & not verified\\
+ & 32B & none released & \texttt{Qwen/Qwen3-32B}\\
+\midrule
+SmolLM2 & 135M & not verified & \texttt{HuggingFaceTB/SmolLM2-135M-Instruct}\\
+ & 360M & not verified & \texttt{HuggingFaceTB/SmolLM2-360M-Instruct}\\
+ & 1.7B & \texttt{HuggingFaceTB/SmolLM2-1.7B} & not verified\\
+\midrule
+Gemma 3 & 270M, 12B & not verified & not verified\\
+ & 1B & \texttt{google/gemma-3-1b-pt} & \texttt{google/gemma-3-1b-it}\\
+ & 4B & \texttt{google/gemma-3-4b-pt} & \texttt{google/gemma-3-4b-it}\\
+ & 27B & not verified & \texttt{google/gemma-3-27b-it}\\
+\midrule
+Pythia & 70M & \texttt{EleutherAI/pythia-70m-deduped} & \\
+ & 160M & \texttt{EleutherAI/pythia-160m-deduped} & \\
+ & 410M & \texttt{EleutherAI/pythia-410m-deduped} & \\
+ & 1B & \texttt{EleutherAI/pythia-1b-deduped} & \\
+ & 1.4B & \texttt{EleutherAI/pythia-1.4b-deduped} & \\
+ & 2.8B & \texttt{EleutherAI/pythia-2.8b-deduped} & \\
+ & 6.9B & \texttt{EleutherAI/pythia-6.9b-deduped} & \\
+ & 12B & \texttt{EleutherAI/pythia-12b-deduped} & \\
+\midrule
+OLMo 2 & 1B & \texttt{allenai/OLMo-2-0425-1B} & \texttt{allenai/OLMo-2-0425-1B-Instruct}\\
+ & 7B & \texttt{allenai/OLMo-2-1124-7B} & \texttt{allenai/OLMo-2-1124-7B-Instruct}\\
+ & 13B & \texttt{allenai/OLMo-2-1124-13B} & \texttt{allenai/OLMo-2-1124-13B-Instruct}\\
+ & 32B & \texttt{allenai/OLMo-2-0325-32B} & \texttt{allenai/OLMo-2-0325-32B-Instruct}\\
+\bottomrule
+\end{tabularx}
+\end{table}

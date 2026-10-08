@@ -43,9 +43,11 @@ fitted within one family on the sweep results.
 
 ## 4. Design
 
-- Environments, parameters and seeds exactly as in `configs/sweep_gpu.yaml` and `configs/ablations.yaml`
-  at the `prereg-v1` tag.
-- Evaluation seeds 0-99 (blackjack 0-299); training seeds 100000-100099. Prompts frozen at the tag.
+- Environments, parameters and seeds exactly as in `configs/sweep_gpu.yaml`, `configs/sweep_controls.yaml`
+  and the five files in `configs/ablations/` at the `prereg-v1` tag.
+- Evaluation seeds 0-99 (tic-tac-toe 0-299; blackjack 0-99 with 20 hands per episode); training seeds
+  100000-100099; the pilot used seeds 5000-5019 and is not part of the confirmatory data. Prompts frozen
+  at the tag.
 - Models: the families and sizes listed in the two configs; a model that cannot be loaded is
   dropped and listed in the appendix.
 - Primary outcome: normalised return per episode. Secondary: illegal-action rate, oracle agreement,
@@ -53,17 +55,26 @@ fitted within one family on the sweep results.
 
 ## 5. Sample size
 
-From the pilot, the per-episode SD of normalised score (to be filled in): bandit __, contextual
-bandit __, loan __, gridworld __, tictactoe __, blackjack __. With a smallest effect of interest of
-0.10 and SD <= 0.40, 100 paired episodes give power >= 0.8 at alpha = 0.05 (two-sided); blackjack
-(SD ~ 1.0 per hand) uses 300.
+For a paired comparison with smallest effect of interest 0.10, alpha = 0.05 (two-sided) and power 0.8,
+the required number of paired episodes is n = ((1.96 + 0.84) * sd_diff / 0.10)^2, where sd_diff is the
+standard deviation of the per-episode paired differences in normalised score. One hundred episodes
+therefore suffice when sd_diff <= 0.36. From the pilot (seeds 5000-5019), sd_diff per task (to be filled
+in at the tag): bandit __, contextual bandit __, loan __, gridworld __, tictactoe __, blackjack __.
+Tic-tac-toe uses 300 episodes and blackjack 100 episodes of 20 hands because single-game outcomes are
+-1/0/+1 and their normalised SD is near 1. For any task whose measured sd_diff implies a detectable
+effect above 0.10 at the chosen n, we report the smallest detectable effect alongside the estimate
+and do not interpret a non-significant result as evidence of no effect.
 
 ## 6. Analysis plan
 
 Per cell: mean, IQM, 95% bootstrap CI (2000 resamples). Paired comparisons: permutation test on
-sign-flipped paired differences (5000 permutations), Holm-corrected within each hypothesis's family
-of tests. Scale slopes by ordinary least squares with bootstrap CIs over episodes. All computed by
-`deadeye report` and `deadeye compare`; the exact code at the `prereg-v1` tag is the analysis.
+sign-flipped paired differences (5000 permutations). Holm correction is applied within each
+hypothesis's family of tests, which is the set of `--pair` arguments of one `deadeye compare` call:
+H2a is one family per model family, H3a one family per task set, H5 one family per method, H6b and
+H7a-b one family each. Scale slopes (H1, H4b): ordinary least squares of cell-mean normalised score on
+log10(parameters) within a family, method and task, with 95% CIs from 1000 bootstrap resamples of
+episodes within cells (`slopes.csv` from `deadeye report`; slope ratios from `slope_ratio`). All computed
+by `deadeye report` and `deadeye compare`; the exact code at the `prereg-v1` tag is the analysis.
 
 ## 7. Exclusion and stopping rules
 

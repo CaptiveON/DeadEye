@@ -25,7 +25,7 @@ produced it in `run_manifest.json`. To re-run one cell:
 ```bash
 deadeye run configs/sweep_gpu.yaml --only-env loan --only-model Qwen/Qwen2.5-1.5B-Instruct --only-method prompt_score --force
 deadeye report results/sweep_gpu --out report/check
-deadeye compare results/sweep_gpu --env loan --a Qwen__Qwen2.5-1.5B-Instruct/prompt_score --b Qwen__Qwen2.5-1.5B-Instruct/prompt_generate
+deadeye compare results/sweep_gpu --pair "loan:Qwen__Qwen2.5-1.5B-Instruct/prompt_score vs loan:Qwen__Qwen2.5-1.5B-Instruct/prompt_generate"
 ```
 
 Greedy decoding and seeded instances make `prompt_score`, `probe` and `prompt_generate`

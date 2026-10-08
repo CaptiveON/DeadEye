@@ -1,0 +1,27 @@
+# Ablation block: quantisation (H5). bf16 vs int8 vs int4 at 1.5B, 7B and 14B, prompting and scoring and probes.
+name: ablations_quantisation
+output_dir: results/ablations/quantisation
+seeds: {start: 0, n: 100}
+train_seeds: {start: 100000, n: 100}
+envs:
+  - {name: bandit, params: {n_arms: 5, horizon: 50, gap: 0.2}}
+  - {name: contextual_bandit, params: {n_actions: 3, dim: 4, horizon: 30}}
+  - {name: loan, params: {n_applicants: 20}}
+  - {name: gridworld, params: {size: 6}}
+  - {name: tictactoe, params: {opponent: random}, n_episodes: 300}
+  - {name: blackjack, params: {hands_per_episode: 20}, n_episodes: 100}
+models:
+  - {backend: hf, id: Qwen/Qwen2.5-1.5B-Instruct, label: q1.5b-bf16}
+  - {backend: hf, id: Qwen/Qwen2.5-1.5B-Instruct, quantization: int8, label: q1.5b-int8}
+  - {backend: hf, id: Qwen/Qwen2.5-1.5B-Instruct, quantization: int4, label: q1.5b-int4}
+  - {backend: hf, id: Qwen/Qwen2.5-7B-Instruct, label: q7b-bf16}
+  - {backend: hf, id: Qwen/Qwen2.5-7B-Instruct, quantization: int8, label: q7b-int8}
+  - {backend: hf, id: Qwen/Qwen2.5-7B-Instruct, quantization: int4, label: q7b-int4}
+  - {backend: hf, id: Qwen/Qwen2.5-14B-Instruct, label: q14b-bf16}
+  - {backend: hf, id: Qwen/Qwen2.5-14B-Instruct, quantization: int8, label: q14b-int8}
+  - {backend: hf, id: Qwen/Qwen2.5-14B-Instruct, quantization: int4, label: q14b-int4}
+methods:
+  - {name: prompt_generate, params: {max_new_tokens: 16}}
+  - {name: prompt_score}
+  - {name: probe, params: {layer: mid, n_train_episodes: 100}}
+baselines: [random, oracle, ucb1]

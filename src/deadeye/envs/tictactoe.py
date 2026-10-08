@@ -57,14 +57,16 @@ def expectimax(board: tuple[str, ...], me: str) -> tuple[float, int | None]:
     w = winner(board)
     if w is not None:
         return _terminal(w, me), None
-    best_val, best_move = None, None
+    best_key, best_val, best_move = None, None, None
     for i, cell in enumerate(board):
         if cell != ".":
             continue
         nb = board[:i] + (me,) + board[i + 1:]
         v = _random_reply_value(nb, me)
-        if best_val is None or v > best_val + 1e-12:
-            best_val, best_move = v, i
+        # exact expected value first; among EV-equal moves prefer an immediate win, then the lowest cell index
+        key = (round(v, 9), 1 if winner(nb) == me else 0, -i)
+        if best_key is None or key > best_key:
+            best_key, best_val, best_move = key, v, i
     return best_val, best_move
 
 

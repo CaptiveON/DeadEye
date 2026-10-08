@@ -106,3 +106,64 @@ def test_probe_reports_episodes_used_and_truncation():
     pol = make_policy("feature_probe", {"n_train_episodes": 5, "max_train_states": 7})
     stats = pol.prepare(lambda: make_env("loan", n_applicants=4), list(range(100000, 100010)))
     assert stats["n_train_episodes_used"] == 2 and stats["truncated"] and stats["n_train_states"] == 7
+
+
+def test_blackjack_multi_hand_episode():
+    env = make_env("blackjack", hands_per_episode=5)
+    obs = env.reset(3)
+    assert "Hand 1 of 5" in obs.text and env.max_steps == 60
+    n = 0
+    while not env.done:
+        env.step(env.oracle_action())
+        n += 1
+    m = env.episode_metrics()
+    assert m["hands"] == 5.0 and 5 <= n <= 60 and abs(m["win"] + m["loss"]) <= 1.0
+    # same seed, same hands regardless of a different (legal) policy's choices on hand 1
+    env.reset(3)
+    env.step("stand")
+    first_dealer = env.dealer[:2] if env.hand_idx == 0 else None
+    assert first_dealer is None or len(first_dealer) == 2
+
+
+def test_expectimax_takes_immediate_win():
+    env = make_env("tictactoe", opponent="random", agent_mark="X")
+    env.reset(0)
+    env.board = tuple("XX.OO....")
+    assert env.oracle_action() == "3"
+
+
+def test_scale_slopes_and_bare_latex(tmp_path):
+    from deadeye.report import build_report, scale_slopes, slope_ratio
+    cfg = RunConfig.from_dict({
+        "name": "t", "output_dir": str(tmp_path / "r"), "seeds": {"start": 0, "n": 4}, "catalog": None,
+        "envs": [{"name": "bandit", "params": {"n_arms": 3, "horizon": 5}}, {"name": "blackjack"}],
+        "models": [{"backend": "mock", "id": f"m{i}", "params": 10 ** (6 + i), "family": "mock", "strategy": "random", "seed": i} for i in range(3)],
+        "methods": [{"name": "prompt_generate"}, {"name": "prompt_score"}],
+    })
+    Runner(cfg).run()
+    res = build_report([str(tmp_path / "r")], tmp_path / "rep")
+    slopes = res["slopes"]
+    assert set(slopes["env_key"]) >= {"bandit", "blackjack", "__mean__"} and (slopes["n_models"] == 3).all()
+    assert (slopes["slope_ci_lo"] <= slopes["slope"]).all() and (slopes["slope"] <= slopes["slope_ci_hi"]).all()
+    r = slope_ratio(slopes, "mock", "bandit", "prompt_score", "prompt_generate")
+    assert set(r) == {"ratio", "ci_lo", "ci_hi"}
+    assert (tmp_path / "rep" / "slopes.csv").exists() and (tmp_path / "rep" / "tables" / "slopes.tex").exists()
+    tex = (tmp_path / "rep" / "tables" / "prompt_score.tex").read_text()
+    assert tex.lstrip().startswith("\\begin{tabular}") and "\\begin{table}" not in tex and "\\caption" not in tex
+
+
+def test_compare_cli_families(tmp_path):
+    from typer.testing import CliRunner
+    from deadeye.cli import app
+    cfg = RunConfig.from_dict({
+        "name": "t", "output_dir": str(tmp_path / "r"), "seeds": {"start": 0, "n": 6}, "catalog": None,
+        "envs": [{"name": "loan", "params": {"n_applicants": 4}}, {"name": "loan", "params": {"n_applicants": 4, "shift": "sign_flip"}, "label": "loan_flip"}],
+        "models": [{"backend": "mock", "id": "m"}], "methods": [{"name": "prompt_generate"}, {"name": "prompt_score"}],
+    })
+    Runner(cfg).run()
+    out = tmp_path / "cmp.csv"
+    result = CliRunner().invoke(app, ["compare", str(tmp_path / "r"), "--pair", "loan:m/prompt_generate vs loan:m/prompt_score",
+                                      "--pair", "loan:m/prompt_score vs loan_flip:m/prompt_score", "--n-perm", "200", "--out", str(out)])
+    assert result.exit_code == 0, result.output
+    rows = out.read_text().splitlines()
+    assert len(rows) == 3 and "p_holm" in rows[0]

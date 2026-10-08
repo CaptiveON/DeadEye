@@ -1,0 +1,29 @@
+# Ablation block: task structure. Observation format and action-space size (bandit), adversary strength (tic-tac-toe),
+# planning depth (gridworld), and the out-of-distribution loan variants (H3; adaptation methods train in distribution).
+name: ablations_tasks
+output_dir: results/ablations/tasks
+seeds: {start: 0, n: 100}
+train_seeds: {start: 100000, n: 100}
+envs:
+  - {name: bandit, params: {n_arms: 5, horizon: 50, gap: 0.2}}
+  - {name: bandit, params: {n_arms: 5, horizon: 50, gap: 0.2, history_format: raw}, label: bandit_rawhist}
+  - {name: bandit, params: {n_arms: 10, horizon: 100, gap: 0.2}, label: bandit_hard}
+  - {name: bandit, params: {n_arms: 5, horizon: 50, gap: 0.5}, label: bandit_easy}
+  - {name: loan, params: {n_applicants: 20}}
+  - {name: loan, params: {n_applicants: 20, shift: covariate}, train_params: {n_applicants: 20, shift: none}, label: loan_covariate_shift}
+  - {name: loan, params: {n_applicants: 20, shift: sign_flip}, train_params: {n_applicants: 20, shift: none}, label: loan_sign_flip}
+  - {name: gridworld, params: {size: 6}}
+  - {name: gridworld, params: {size: 9, n_walls: 16}, label: gridworld_large}
+  - {name: tictactoe, params: {opponent: random}, n_episodes: 300}
+  - {name: tictactoe, params: {opponent: minimax}, n_episodes: 300, label: tictactoe_minimax}
+models:
+  - {backend: hf, id: Qwen/Qwen2.5-1.5B-Instruct}
+  - {backend: hf, id: Qwen/Qwen2.5-7B-Instruct}
+  - {backend: hf, id: Qwen/Qwen2.5-14B-Instruct}
+methods:
+  - {name: prompt_generate, params: {max_new_tokens: 16}}
+  - {name: prompt_score}
+  - {name: probe, params: {layer: mid, n_train_episodes: 100}}
+  - {name: feature_probe, params: {n_train_episodes: 100}}
+  - {name: lora_sft, params: {n_train_episodes: 100, lora: {r: 16, alpha: 32, epochs: 2, lr: 0.0002, batch_size: 8}}}
+baselines: [random, oracle, ucb1]

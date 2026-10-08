@@ -41,7 +41,7 @@ deadeye show-prompt bandit --seed 0 --steps 5        # see exactly what the mode
 deadeye estimate configs/pilot_cpu.yaml              # decisions, tokens, wall-clock
 deadeye run configs/pilot_cpu.yaml                   # resumable; --only-model/--only-env/--only-method to split
 deadeye report results/pilot_cpu --out report/pilot_cpu --paper-dir paper
-deadeye compare results/pilot_cpu --env loan --a Qwen__Qwen2.5-0.5B-Instruct/prompt_score --b Qwen__Qwen2.5-0.5B-Instruct/prompt_generate
+deadeye compare results/pilot_cpu --pair "loan:Qwen__Qwen2.5-0.5B-Instruct/prompt_score vs loan:Qwen__Qwen2.5-0.5B-Instruct/prompt_generate"
 ```
 
 ## What is in the box

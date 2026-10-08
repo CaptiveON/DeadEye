@@ -26,11 +26,12 @@ class BlackjackEnv(Environment):
     primary_metric = "return"
     higher_is_better = True
 
-    def __init__(self, natural_bonus: bool = True, **params) -> None:
-        super().__init__(natural_bonus=natural_bonus, **params)
+    def __init__(self, natural_bonus: bool = True, hands_per_episode: int = 1, **params) -> None:
+        super().__init__(natural_bonus=natural_bonus, hands_per_episode=hands_per_episode, **params)
         self.natural_bonus = bool(natural_bonus)
+        self.hands = int(hands_per_episode)
         self.action_labels = ["hit", "stand"]
-        self.max_steps = 12
+        self.max_steps = 12 * self.hands
 
     def _draw_player(self) -> int:
         card = DECK[int(self._pstream[self._pk])]
@@ -44,28 +45,36 @@ class BlackjackEnv(Environment):
 
     def reset(self, seed: int) -> Observation:
         self._rng = np.random.default_rng(seed + 20_011)
-        self._pstream = self._rng.integers(len(DECK), size=32)
-        self._dstream = self._rng.integers(len(DECK), size=32)
+        self._pstream = self._rng.integers(len(DECK), size=16 * self.hands)
+        self._dstream = self._rng.integers(len(DECK), size=16 * self.hands)
         self._pk = self._dk = 0
-        self.player = [self._draw_player(), self._draw_player()]
-        self.dealer = [self._draw_dealer(), self._draw_dealer()]
+        self.hand_idx = 0
+        self._outcomes: list[float] = []
+        self._busts = 0
+        self._deal()
         self._t = 0
         self._done = False
         self._outcome = 0.0
         self._bust = False
         return self._obs()
 
+    def _deal(self) -> None:
+        self.player = [self._draw_player(), self._draw_player()]
+        self.dealer = [self._draw_dealer(), self._draw_dealer()]
+
     def step(self, action: str) -> StepResult:
         self._check_action(action, self.action_labels)
         self._t += 1
         reward = 0.0
+        hand_over = False
         if action == "hit":
             self.player.append(self._draw_player())
             total, _ = hand_value(self.player)
             if total > 21:
-                self._done, self._bust, reward = True, True, -1.0
+                hand_over, reward = True, -1.0
+                self._busts += 1
         else:
-            self._done = True
+            hand_over = True
             ptotal, _ = hand_value(self.player)
             while hand_value(self.dealer)[0] < 17:
                 self.dealer.append(self._draw_dealer())
@@ -78,9 +87,15 @@ class BlackjackEnv(Environment):
                 reward = 0.0
             else:
                 reward = -1.0
-        if self._done:
-            self._outcome = reward
-        return StepResult(self._obs(), reward, self._done, {})
+        if hand_over:
+            self._outcomes.append(reward)
+            self._outcome += reward
+            if self.hand_idx + 1 < self.hands:
+                self.hand_idx += 1
+                self._deal()
+            else:
+                self._done = True
+        return StepResult(self._obs(), reward, self._done, {"hand": self.hand_idx, "hand_over": hand_over})
 
     def oracle_action(self) -> str:
         total, usable = hand_value(self.player)
@@ -100,7 +115,9 @@ class BlackjackEnv(Environment):
         return "hit"
 
     def episode_metrics(self) -> dict[str, float]:
-        return {"win": float(self._outcome > 0), "loss": float(self._outcome < 0), "bust": float(self._bust)}
+        n = max(1, len(self._outcomes))
+        return {"win": float(sum(1 for o in self._outcomes if o > 0) / n), "loss": float(sum(1 for o in self._outcomes if o < 0) / n),
+                "bust": float(self._busts / n), "hands": float(len(self._outcomes))}
 
     def describe(self) -> str:
         return (
@@ -109,11 +126,13 @@ class BlackjackEnv(Environment):
             "'stand' (end your turn). If you exceed 21 you bust and lose. After you stand, the dealer draws until "
             "reaching 17 or more. You win if your total is higher than the dealer's or the dealer busts; equal totals "
             "tie. A two-card 21 pays extra. Maximise your expected winnings."
+            + (f" You play {self.hands} hands in a row; each hand is settled separately." if self.hands > 1 else "")
         )
 
     def _obs(self) -> Observation:
         total, usable = hand_value(self.player)
-        text = (f"Your cards: {', '.join(str(c) for c in self.player)} (total {total}{', with an ace counted as 11' if usable else ''}).\n"
+        prefix = f"Hand {self.hand_idx + 1} of {self.hands} (running total {self._outcome:+.1f}).\n" if self.hands > 1 else ""
+        text = (prefix + f"Your cards: {', '.join(str(c) for c in self.player)} (total {total}{', with an ace counted as 11' if usable else ''}).\n"
                 f"Dealer shows: {self.dealer[0]}.")
         feats = np.array([total / 21, float(usable), self.dealer[0] / 10], dtype=np.float32)
         return Observation(text=text, legal_actions=list(self.action_labels), features=feats, info={"t": self._t})
