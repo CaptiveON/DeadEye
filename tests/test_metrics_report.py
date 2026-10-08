@@ -49,3 +49,53 @@ def test_report_from_smoke_results(tmp_path):
     assert (tmp_path / "rep" / "index.html").exists() and (tmp_path / "rep" / "tables.md").exists()
     assert (tmp_path / "paper" / "tables" / "prompt_score.tex").exists()
     assert any(f.name == "fig_scale.png" for f in res["figures"])
+
+
+def _mock_run(out, name, envs, models, methods):
+    from deadeye.config import RunConfig
+    from deadeye.runner import Runner
+    Runner(RunConfig.from_dict({"name": name, "output_dir": str(out), "seeds": {"start": 0, "n": 4}, "catalog": None,
+                                "envs": envs, "models": models, "methods": methods, "baselines": ["random", "oracle"]})).run()
+
+
+def test_report_keeps_variants_of_one_checkpoint_apart(tmp_path):
+    """Ablations run one checkpoint at several precisions / template settings (same id, different labels)."""
+    from deadeye.report import build_report
+    models = [{"backend": "mock", "id": "org/m", "strategy": "first", "params": 10**9, "family": "f", "label": "m-bf16"},
+              {"backend": "mock", "id": "org/m", "strategy": "last", "params": 10**9, "family": "f", "label": "m-int4"}]
+    _mock_run(tmp_path / "res", "abl", [{"name": "loan", "params": {"n_applicants": 5}}], models, [{"name": "prompt_generate"}])
+    res = build_report([str(tmp_path / "res")], tmp_path / "rep")
+    cells = res["cells"].set_index("model_key")
+    table = res["tables"]["prompt_generate"]
+    assert len(table) == 2
+    for key in ("m-bf16", "m-int4"):
+        row = [i for i in table.index if key in i]
+        assert len(row) == 1 and table.loc[row[0], "loan"].startswith(f"{cells.loc[key, 'norm_mean']:.2f}")
+    assert len(res["tables"]["illegal_rate"]) == 2
+
+
+def test_report_normalises_each_run_with_its_own_baselines(tmp_path):
+    """Two runs may use the same env key with different parameters (e.g. pilot vs sweep horizons)."""
+    from deadeye.report import build_report
+    _mock_run(tmp_path / "a", "runA", [{"name": "loan", "params": {"n_applicants": 4}}], [], [])
+    _mock_run(tmp_path / "b", "runB", [{"name": "loan", "params": {"n_applicants": 12}}], [], [])
+    cells = build_report([str(tmp_path / "a"), str(tmp_path / "b")], tmp_path / "rep")["cells"]
+    assert len(cells) == 4
+    assert np.allclose(cells[cells["method"] == "oracle"]["norm_mean"], 1.0)
+    assert np.allclose(cells[cells["method"] == "random"]["norm_mean"], 0.0)
+
+
+def test_illegal_rate_figure_does_not_join_generation_variants(tmp_path, monkeypatch):
+    import matplotlib
+    matplotlib.use("Agg")
+    from matplotlib.axes import Axes
+    from deadeye.report import fig_illegal, load_results, normalize_results
+    models = [{"backend": "mock", "id": f"org/m{i}", "format_failure_rate": 0.3, "params": 10**8 * (i + 1), "family": "f"} for i in range(2)]
+    methods = [{"name": "prompt_generate"}, {"name": "prompt_generate", "params": {"cot": True}, "label": "gen_cot"}]
+    _mock_run(tmp_path / "res", "g", [{"name": "loan", "params": {"n_applicants": 3}}], models, methods)
+    cells, _ = normalize_results(*load_results([str(tmp_path / "res")]))
+    lines = []
+    orig = Axes.plot
+    monkeypatch.setattr(Axes, "plot", lambda self, x, y, **kw: lines.append(list(x)) or orig(self, x, y, **kw))
+    assert fig_illegal(cells, tmp_path / "fig_illegal") is not None
+    assert len(lines) == 2 and all(len(set(x)) == len(x) for x in lines)  # one line per variant, one point per model

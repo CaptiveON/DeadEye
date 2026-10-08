@@ -19,7 +19,12 @@ class Handler(BaseHTTPRequestHandler):
         n = int(self.headers.get("Content-Length", 0))
         body = json.loads(self.rfile.read(n))
         Handler.calls.append((self.path, body))
-        if body.get("logprobs"):
+        if body.get("logprobs") and body["messages"][-1]["content"] == "words first":
+            top = [{"token": "As", "logprob": -0.3}, {"token": "C", "logprob": -1.2}, {"token": "In", "logprob": -1.5},
+                   {"token": "B.", "logprob": -2.0}, {"token": "A", "logprob": -2.5}, {"token": "I", "logprob": -3.0}]
+            resp = {"choices": [{"message": {"content": "As"}, "logprobs": {"content": [{"token": "As", "logprob": -0.3,
+                    "top_logprobs": top}]}}], "usage": {"prompt_tokens": 7, "completion_tokens": 1}}
+        elif body.get("logprobs"):
             resp = {"choices": [{"message": {"content": "B"}, "logprobs": {"content": [{"token": "B", "logprob": -0.1,
                     "top_logprobs": [{"token": "B", "logprob": -0.1}, {"token": "A", "logprob": -2.5}, {"token": " C", "logprob": -4.0}]}]}}],
                     "usage": {"prompt_tokens": 42, "completion_tokens": 1}}
@@ -59,3 +64,10 @@ def test_unreachable_server_raises():
     m = OpenAICompatModel("x", base_url="http://127.0.0.1:9/v1", max_retries=0, timeout=1)
     with pytest.raises(RuntimeError):
         m.generate([Message("user", "hi")])
+
+
+def test_first_token_scoring_ignores_words_starting_with_a_letter(server):
+    """Tokens like "As" / "In" must not be credited to options "A" / "I"; "B." still counts for "B"."""
+    m = OpenAICompatModel("fake-model", base_url=server)
+    s = m.score_choices([Message("user", "words first")], list("ABCI"))
+    assert s.logprobs == [-2.5, -2.0, -1.2, -3.0]

@@ -20,6 +20,15 @@ from deadeye.policies.prompts import PromptConfig, build_messages, collect_demos
     ("The best move is cell 5.", ["1", "5", "9"], None),
     ("ACTION = hit", ["hit", "stand"], "hit"),
     ("", ["hit", "stand"], None),
+    # JSON-style answers: the key's closing quote sits between "action" and ":"
+    ('{"action": "B"}', ["A", "B", "C"], "B"),
+    ('{"action": "arm_2", "reason": "arm_10 looks worse"}', [f"arm_{i}" for i in range(1, 11)], "arm_2"),
+    # descriptor words before a single-character label on an explicit Action line
+    ("Action: Option B", ["A", "B", "C"], "B"),
+    ("Action: cell 5", ["1", "5", "9"], "5"),
+    ("Option A is risky.\nI am not sure.", ["A", "B"], None),
+    # opening <think> was part of the prompt (R1-distill style templates)
+    ("so Action: up? no...</think>\n\ndown", ["up", "down"], "down"),
 ])
 def test_parse_action(text, labels, want):
     got, _ = parse_action(text, labels)

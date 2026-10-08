@@ -68,22 +68,32 @@ def load_results(dirs: Iterable[str | Path]) -> tuple[pd.DataFrame, pd.DataFrame
     return cells_df, eps_df
 
 
+def _run_key(df: pd.DataFrame) -> pd.Series:
+    """Run name per row ("" when unknown). Env keys are unique within a run, not across runs."""
+    return df["run"].fillna("").astype(str) if "run" in df else pd.Series("", index=df.index)
+
+
 def _cell_id(df: pd.DataFrame) -> pd.Series:
-    return df["env_key"] + "|" + df["model_key"] + "|" + df["method_key"]
+    return _run_key(df) + "|" + df["env_key"] + "|" + df["model_key"] + "|" + df["method_key"]
 
 
 def normalize_results(cells: pd.DataFrame, episodes: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Add normalised scores (random=0, oracle=1) to episodes and per-cell aggregates to cells."""
+    """Add normalised scores (random=0, oracle=1) to episodes and per-cell aggregates to cells.
+
+    Anchors are taken per (run, env_key): when several result directories are combined, an env key such as
+    ``bandit`` may have different parameters in each run and must be normalised by its own baselines.
+    """
     anchors = {}
-    for env_key, grp in cells.groupby("env_key"):
+    for (run, env_key), grp in cells.groupby([_run_key(cells), cells["env_key"]]):
         r = grp[(grp["model_key"] == "_baseline") & (grp["method"] == "random")]
         o = grp[(grp["model_key"] == "_baseline") & (grp["method"] == "oracle")]
         if len(r) and len(o):
-            anchors[env_key] = (float(r["return_mean"].iloc[0]), float(o["return_mean"].iloc[0]))
+            anchors[(run, env_key)] = (float(r["return_mean"].iloc[0]), float(o["return_mean"].iloc[0]))
     episodes = episodes.copy()
     episodes["norm"] = np.nan
-    for env_key, (rm, om) in anchors.items():
-        mask = episodes["env_key"] == env_key
+    ep_run = _run_key(episodes)
+    for (run, env_key), (rm, om) in anchors.items():
+        mask = (ep_run == run) & (episodes["env_key"] == env_key)
         span = om - rm
         episodes.loc[mask, "norm"] = (episodes.loc[mask, "return"] - rm) / span if abs(span) > 1e-12 else np.nan
     cells = cells.copy()
@@ -96,8 +106,9 @@ def normalize_results(cells: pd.DataFrame, episodes: pd.DataFrame) -> tuple[pd.D
         agg.append({"cell_id": cid, "norm_mean": float(np.nanmean(x)) if len(x) else np.nan, "norm_iqm": iqm(x[~np.isnan(x)]) if len(x) else np.nan,
                     "norm_ci_lo": lo, "norm_ci_hi": hi, "norm_std": float(np.nanstd(x, ddof=1)) if len(x) > 1 else 0.0})
     cells = cells.merge(pd.DataFrame(agg), on="cell_id", how="left")
-    cells["anchor_random"] = cells["env_key"].map({k: v[0] for k, v in anchors.items()})
-    cells["anchor_oracle"] = cells["env_key"].map({k: v[1] for k, v in anchors.items()})
+    keys = list(zip(_run_key(cells), cells["env_key"]))
+    cells["anchor_random"] = [anchors.get(k, (np.nan, np.nan))[0] for k in keys]
+    cells["anchor_oracle"] = [anchors.get(k, (np.nan, np.nan))[1] for k in keys]
     return cells, episodes
 
 
@@ -117,13 +128,23 @@ def _fmt_params(p: float | None) -> str:
     return f"{p / 1e3:.0f}K"
 
 
+def _model_label(df: pd.DataFrame, with_params: bool = True) -> pd.Series:
+    """Display name per row. Variants of one checkpoint (precision, chat-template kwargs, ...) share a model id, so
+    their model_key is appended; otherwise pivots keyed on the name would silently keep only one of them."""
+    base = df["model_id"].map(short_model)
+    if with_params:
+        base = base + " (" + df["params"].map(_fmt_params) + ")"
+    n_keys = df.groupby(base)["model_key"].transform("nunique")
+    return base.where(n_keys <= 1, base + " [" + df["model_key"] + "]")
+
+
 def method_tables(cells: pd.DataFrame) -> dict[str, pd.DataFrame]:
     """One wide table per method: rows = models (by size), columns = environments, values = norm score with CI."""
     tables: dict[str, pd.DataFrame] = {}
     model_cells = cells[cells["model_key"] != "_baseline"]
     for mkey, grp in model_cells.groupby("method_key", sort=False):
         grp = grp.copy()
-        grp["model"] = grp["model_id"].map(short_model) + " (" + grp["params"].map(_fmt_params) + ")"
+        grp["model"] = _model_label(grp)
         grp["val"] = grp.apply(lambda r: f"{r['norm_mean']:.2f} [{r['norm_ci_lo']:.2f}, {r['norm_ci_hi']:.2f}]", axis=1)
         order = grp.sort_values("params", na_position="last").drop_duplicates("model")["model"].tolist()
         wide = grp.pivot_table(index="model", columns="env_key", values="val", aggfunc="first").reindex(order)
@@ -134,7 +155,7 @@ def method_tables(cells: pd.DataFrame) -> dict[str, pd.DataFrame]:
 
 def secondary_tables(cells: pd.DataFrame) -> dict[str, pd.DataFrame]:
     model_cells = cells[cells["model_key"] != "_baseline"].copy()
-    model_cells["model"] = model_cells["model_id"].map(short_model)
+    model_cells["model"] = _model_label(model_cells, with_params=False)
     out = {}
     for name, col, fmt in [("illegal_rate", "illegal_rate", "{:.1%}"), ("oracle_agreement", "oracle_agreement", "{:.1%}"),
                            ("latency_s_per_decision", "latency_per_decision_s", "{:.3f}"),
@@ -168,7 +189,7 @@ def pairwise_by_model(episodes: pd.DataFrame, cells: pd.DataFrame) -> pd.DataFra
     """Within each (env, model), compare every method pair with a paired permutation test over seeds."""
     rows = []
     model_eps = episodes[episodes["model_key"] != "_baseline"]
-    for (env_key, model_key), grp in model_eps.groupby(["env_key", "model_key"]):
+    for (_, env_key, model_key), grp in model_eps.groupby([_run_key(model_eps), model_eps["env_key"], model_eps["model_key"]]):
         methods = sorted(grp["method_key"].unique())
         for i, a in enumerate(methods):
             for b in methods[i + 1:]:
@@ -265,11 +286,15 @@ def fig_illegal(cells: pd.DataFrame, out: Path) -> Path | None:
     markers = _families(mc)
     envs = sorted(mc["env_key"].unique())
     env_colors = {e: list(METHOD_COLORS.values())[i % 6] for i, e in enumerate(envs)}
+    variants = sorted(mc["method_key"].unique())  # e.g. plain and CoT generation: separate lines, never joined
+    styles = ["-", "--", ":", "-."]
     for env_key in envs:
-        for fam, g in mc[mc["env_key"] == env_key].groupby(mc["family"].fillna("unknown")):
+        sub = mc[mc["env_key"] == env_key]
+        for (fam, mk), g in sub.groupby([sub["family"].fillna("unknown"), sub["method_key"]]):
             g = g.sort_values("params")
+            label = f"{env_key} ({fam})" if len(variants) == 1 else f"{env_key}, {mk} ({fam})"
             ax.plot(g["params"], g["illegal_rate"], color=env_colors[env_key], marker=markers.get(fam, "o"), markersize=5,
-                    linewidth=1.6, label=f"{env_key} ({fam})")
+                    linewidth=1.6, linestyle=styles[variants.index(mk) % len(styles)], label=label)
     ax.set_xscale("log")
     ax.set_ylim(bottom=0)
     _style(ax, xlabel="parameters", ylabel="illegal / unparseable action rate", title="Format failures under free-form generation")
@@ -330,13 +355,14 @@ def fig_heatmap(cells: pd.DataFrame, out: Path) -> Path | None:
     fig, axes = plt.subplots(1, len(methods), figsize=(3.2 * len(methods) + 2.5, 0.42 * mc["model_key"].nunique() + 2.2), squeeze=False)
     fig.subplots_adjust(wspace=0.12, left=0.18)
     for j, (ax, mk) in enumerate(zip(axes[0], methods)):
-        sub = mc[mc["method_key"] == mk]
-        order = sub.sort_values("params", na_position="last").drop_duplicates("model_id")["model_id"].tolist()
-        piv = sub.pivot_table(index="model_id", columns="env_key", values="norm_mean", aggfunc="first").reindex(order)
+        sub = mc[mc["method_key"] == mk].copy()
+        sub["model"] = _model_label(sub, with_params=False)
+        order = sub.sort_values("params", na_position="last").drop_duplicates("model")["model"].tolist()
+        piv = sub.pivot_table(index="model", columns="env_key", values="norm_mean", aggfunc="first").reindex(order)
         im = ax.imshow(piv.to_numpy(dtype=float), cmap=cmap, vmin=0.0, vmax=1.0, aspect="auto")
         ax.set_xticks(range(piv.shape[1]), piv.columns, rotation=30, ha="right", fontsize=7, color=TEXT_SECONDARY)
         if j == 0:
-            ax.set_yticks(range(piv.shape[0]), [short_model(m) for m in piv.index], fontsize=7, color=TEXT_SECONDARY)
+            ax.set_yticks(range(piv.shape[0]), list(piv.index), fontsize=7, color=TEXT_SECONDARY)
         else:
             ax.set_yticks(range(piv.shape[0]), [""] * piv.shape[0])
         for i in range(piv.shape[0]):

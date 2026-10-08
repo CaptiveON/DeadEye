@@ -1,0 +1,712 @@
+% Generated from `deadeye show-prompt <env> --seed 0 --steps 2 [variant flags]` (default environment
+% parameters). Do not edit by hand: regenerate after any prompt change and before the prereg-v1 tag.
+
+\subsection{Multi-armed bandit (\texttt{bandit})}
+\label{app:prompt:bandit}
+
+System message (identical in every variant; a single line in the prompt, wrapped here):
+
+\begin{footnotesize}
+\begin{verbatim}
+You are playing a 5-armed bandit for 50 rounds. Each round you choose one arm and receive a
+reward of 1 or 0. Each arm has a fixed but unknown success probability. Your goal is to maximise
+the total reward over all rounds, which requires balancing exploration (trying arms to learn
+about them) and exploitation (choosing the arm that looks best).
+\end{verbatim}
+\end{footnotesize}
+
+\paragraph{Default: free-form generation, action names.} Command: \texttt{deadeye show-prompt bandit -{}-seed 0 -{}-steps 2}; oracle action in this state: \texttt{arm\_5}.
+
+\begin{footnotesize}
+\begin{verbatim}
+[[user]]
+Round 3 of 50.
+Summary of past pulls:
+  arm_1: never pulled
+  arm_2: never pulled
+  arm_3: never pulled
+  arm_4: never pulled
+  arm_5: pulled 2 times, average reward 0.00
+Legal actions: arm_1, arm_2, arm_3, arm_4, arm_5
+Reply with exactly one line of the form `Action: <name>` and nothing else.
+\end{verbatim}
+\end{footnotesize}
+
+\paragraph{Letter action format.} Command: \texttt{deadeye show-prompt bandit -{}-seed 0 -{}-steps 2 -{}-action-format letter}; oracle action in this state: \texttt{arm\_5}.
+
+\begin{footnotesize}
+\begin{verbatim}
+[[user]]
+Round 3 of 50.
+Summary of past pulls:
+  arm_1: never pulled
+  arm_2: never pulled
+  arm_3: never pulled
+  arm_4: never pulled
+  arm_5: pulled 2 times, average reward 0.00
+Legal actions: A, B, C, D, E
+  A = arm_1
+  B = arm_2
+  C = arm_3
+  D = arm_4
+  E = arm_5
+Reply with exactly one line of the form `Action: <letter>` and nothing else.
+\end{verbatim}
+\end{footnotesize}
+
+\paragraph{Chain of thought.} Command: \texttt{deadeye show-prompt bandit -{}-seed 0 -{}-steps 2 -{}-cot}; oracle action in this state: \texttt{arm\_5}.
+
+\begin{footnotesize}
+\begin{verbatim}
+[[user]]
+Round 3 of 50.
+Summary of past pulls:
+  arm_1: never pulled
+  arm_2: never pulled
+  arm_3: never pulled
+  arm_4: never pulled
+  arm_5: pulled 2 times, average reward 0.00
+Legal actions: arm_1, arm_2, arm_3, arm_4, arm_5
+Think step by step in at most three short sentences, then end your reply with a final line of
+the form `Action: <name>`.
+\end{verbatim}
+\end{footnotesize}
+
+\paragraph{Likelihood scoring (also the LoRA training and inference prompt).} Command: \texttt{deadeye show-prompt bandit -{}-seed 0 -{}-steps 2 -{}-method prompt\_score}; oracle action in this state: \texttt{arm\_5}.
+
+\begin{footnotesize}
+\begin{verbatim}
+[[user]]
+Round 3 of 50.
+Summary of past pulls:
+  arm_1: never pulled
+  arm_2: never pulled
+  arm_3: never pulled
+  arm_4: never pulled
+  arm_5: pulled 2 times, average reward 0.00
+Legal actions: arm_1, arm_2, arm_3, arm_4, arm_5
+Answer with only the action name of your chosen action.
+\end{verbatim}
+\end{footnotesize}
+
+\paragraph{Two oracle demonstrations from training seeds.} Command: \texttt{deadeye show-prompt bandit -{}-seed 0 -{}-steps 2 -{}-few-shot 2}; oracle action in this state: \texttt{arm\_5}.
+
+\begin{footnotesize}
+\begin{verbatim}
+[[user]]
+Round 4 of 50.
+Summary of past pulls:
+  arm_1: pulled 3 times, average reward 1.00
+  arm_2: never pulled
+  arm_3: never pulled
+  arm_4: never pulled
+  arm_5: never pulled
+Legal actions: arm_1, arm_2, arm_3, arm_4, arm_5
+Reply with exactly one line of the form `Action: <name>` and nothing else.
+[[assistant]]
+Action: arm_1
+[[user]]
+Round 2 of 50.
+Summary of past pulls:
+  arm_1: never pulled
+  arm_2: never pulled
+  arm_3: pulled 1 times, average reward 1.00
+  arm_4: never pulled
+  arm_5: never pulled
+Legal actions: arm_1, arm_2, arm_3, arm_4, arm_5
+Reply with exactly one line of the form `Action: <name>` and nothing else.
+[[assistant]]
+Action: arm_3
+[[user]]
+Round 3 of 50.
+Summary of past pulls:
+  arm_1: never pulled
+  arm_2: never pulled
+  arm_3: never pulled
+  arm_4: never pulled
+  arm_5: pulled 2 times, average reward 0.00
+Legal actions: arm_1, arm_2, arm_3, arm_4, arm_5
+Reply with exactly one line of the form `Action: <name>` and nothing else.
+\end{verbatim}
+\end{footnotesize}
+
+\subsection{Contextual bandit (\texttt{contextual\_bandit})}
+\label{app:prompt:contextual_bandit}
+
+System message (identical in every variant; a single line in the prompt, wrapped here):
+
+\begin{footnotesize}
+\begin{verbatim}
+You are making 30 sequential decisions. Each round you see a context made of 4 numeric features
+(x1..x4) and must choose one of 3 options (option_A, option_B, option_C). Each option's success
+probability depends on the context through a fixed but unknown rule. You receive a reward of 1
+(success) or 0 (failure). Use the history of past contexts, choices and rewards to infer which
+option works best for which contexts, and maximise total reward.
+\end{verbatim}
+\end{footnotesize}
+
+\paragraph{Default: free-form generation, action names.} Command: \texttt{deadeye show-prompt contextual\_bandit -{}-seed 0 -{}-steps 2}; oracle action in this state: \texttt{option\_B}.
+
+\begin{footnotesize}
+\begin{verbatim}
+[[user]]
+Round 3 of 30.
+Past rounds (most recent last, showing up to 10):
+  context [x1=-2.33, x2=-0.22, x3=-1.25, x4=-0.73] -> chose option_C -> reward 1
+  context [x1=-0.54, x2=-0.32, x3=+0.41, x4=+1.04] -> chose option_B -> reward 1
+Current context: [x1=-0.13, x2=+1.37, x3=-0.67, x4=+0.35]
+Legal actions: option_A, option_B, option_C
+Reply with exactly one line of the form `Action: <name>` and nothing else.
+\end{verbatim}
+\end{footnotesize}
+
+\paragraph{Letter action format.} Command: \texttt{deadeye show-prompt contextual\_bandit -{}-seed 0 -{}-steps 2 -{}-action-format letter}; oracle action in this state: \texttt{option\_B}.
+
+\begin{footnotesize}
+\begin{verbatim}
+[[user]]
+Round 3 of 30.
+Past rounds (most recent last, showing up to 10):
+  context [x1=-2.33, x2=-0.22, x3=-1.25, x4=-0.73] -> chose option_C -> reward 1
+  context [x1=-0.54, x2=-0.32, x3=+0.41, x4=+1.04] -> chose option_B -> reward 1
+Current context: [x1=-0.13, x2=+1.37, x3=-0.67, x4=+0.35]
+Legal actions: A, B, C
+  A = option_A
+  B = option_B
+  C = option_C
+Reply with exactly one line of the form `Action: <letter>` and nothing else.
+\end{verbatim}
+\end{footnotesize}
+
+\paragraph{Chain of thought.} Command: \texttt{deadeye show-prompt contextual\_bandit -{}-seed 0 -{}-steps 2 -{}-cot}; oracle action in this state: \texttt{option\_B}.
+
+\begin{footnotesize}
+\begin{verbatim}
+[[user]]
+Round 3 of 30.
+Past rounds (most recent last, showing up to 10):
+  context [x1=-2.33, x2=-0.22, x3=-1.25, x4=-0.73] -> chose option_C -> reward 1
+  context [x1=-0.54, x2=-0.32, x3=+0.41, x4=+1.04] -> chose option_B -> reward 1
+Current context: [x1=-0.13, x2=+1.37, x3=-0.67, x4=+0.35]
+Legal actions: option_A, option_B, option_C
+Think step by step in at most three short sentences, then end your reply with a final line of
+the form `Action: <name>`.
+\end{verbatim}
+\end{footnotesize}
+
+\paragraph{Likelihood scoring (also the LoRA training and inference prompt).} Command: \texttt{deadeye show-prompt contextual\_bandit -{}-seed 0 -{}-steps 2 -{}-method prompt\_score}; oracle action in this state: \texttt{option\_B}.
+
+\begin{footnotesize}
+\begin{verbatim}
+[[user]]
+Round 3 of 30.
+Past rounds (most recent last, showing up to 10):
+  context [x1=-2.33, x2=-0.22, x3=-1.25, x4=-0.73] -> chose option_C -> reward 1
+  context [x1=-0.54, x2=-0.32, x3=+0.41, x4=+1.04] -> chose option_B -> reward 1
+Current context: [x1=-0.13, x2=+1.37, x3=-0.67, x4=+0.35]
+Legal actions: option_A, option_B, option_C
+Answer with only the action name of your chosen action.
+\end{verbatim}
+\end{footnotesize}
+
+\paragraph{Two oracle demonstrations from training seeds.} Command: \texttt{deadeye show-prompt contextual\_bandit -{}-seed 0 -{}-steps 2 -{}-few-shot 2}; oracle action in this state: \texttt{option\_B}.
+
+\begin{footnotesize}
+\begin{verbatim}
+[[user]]
+Round 4 of 30.
+Past rounds (most recent last, showing up to 10):
+  context [x1=+0.25, x2=-1.16, x3=-0.21, x4=-0.16] -> chose option_A -> reward 1
+  context [x1=-0.15, x2=+1.38, x3=-0.34, x4=-0.48] -> chose option_B -> reward 1
+  context [x1=+0.63, x2=+0.54, x3=+0.61, x4=+1.11] -> chose option_C -> reward 1
+Current context: [x1=+1.48, x2=+0.03, x3=-1.14, x4=-0.58]
+Legal actions: option_A, option_B, option_C
+Reply with exactly one line of the form `Action: <name>` and nothing else.
+[[assistant]]
+Action: option_B
+[[user]]
+Round 2 of 30.
+Past rounds (most recent last, showing up to 10):
+  context [x1=-0.82, x2=+0.71, x3=-0.75, x4=+0.41] -> chose option_A -> reward 1
+Current context: [x1=-0.10, x2=-0.93, x3=+2.11, x4=+0.72]
+Legal actions: option_A, option_B, option_C
+Reply with exactly one line of the form `Action: <name>` and nothing else.
+[[assistant]]
+Action: option_C
+[[user]]
+Round 3 of 30.
+Past rounds (most recent last, showing up to 10):
+  context [x1=-2.33, x2=-0.22, x3=-1.25, x4=-0.73] -> chose option_C -> reward 1
+  context [x1=-0.54, x2=-0.32, x3=+0.41, x4=+1.04] -> chose option_B -> reward 1
+Current context: [x1=-0.13, x2=+1.37, x3=-0.67, x4=+0.35]
+Legal actions: option_A, option_B, option_C
+Reply with exactly one line of the form `Action: <name>` and nothing else.
+\end{verbatim}
+\end{footnotesize}
+
+\subsection{Loan approval (\texttt{loan})}
+\label{app:prompt:loan}
+
+System message (identical in every variant; a single line in the prompt, wrapped here):
+
+\begin{footnotesize}
+\begin{verbatim}
+You are a loan officer deciding whether to approve loan applications. For each applicant you see
+their profile and the loan terms. If you approve and the loan is repaid, the bank earns the
+interest shown; if you approve and the applicant defaults, the bank loses the amount shown.
+Denying earns and loses nothing. Approve an application only when you expect it to be profitable
+on average, using the applicant's creditworthiness. Your goal is to maximise total profit.
+\end{verbatim}
+\end{footnotesize}
+
+\paragraph{Default: free-form generation, action names.} Command: \texttt{deadeye show-prompt loan -{}-seed 0 -{}-steps 2}; oracle action in this state: \texttt{approve}.
+
+\begin{footnotesize}
+\begin{verbatim}
+[[user]]
+Applicant 3 of 20.
+  Age: 41
+  Annual income: $67.6k
+  Existing debt-to-income ratio: 0.43
+  Credit score: 752 (range 300-850)
+  Years in current employment: 2
+  Requested loan: $9.6k for car
+  If repaid the bank earns $1.2k; if the applicant defaults the bank loses $5.8k.
+Legal actions: approve, deny
+Reply with exactly one line of the form `Action: <name>` and nothing else.
+\end{verbatim}
+\end{footnotesize}
+
+\paragraph{Letter action format.} Command: \texttt{deadeye show-prompt loan -{}-seed 0 -{}-steps 2 -{}-action-format letter}; oracle action in this state: \texttt{approve}.
+
+\begin{footnotesize}
+\begin{verbatim}
+[[user]]
+Applicant 3 of 20.
+  Age: 41
+  Annual income: $67.6k
+  Existing debt-to-income ratio: 0.43
+  Credit score: 752 (range 300-850)
+  Years in current employment: 2
+  Requested loan: $9.6k for car
+  If repaid the bank earns $1.2k; if the applicant defaults the bank loses $5.8k.
+Legal actions: A, B
+  A = approve
+  B = deny
+Reply with exactly one line of the form `Action: <letter>` and nothing else.
+\end{verbatim}
+\end{footnotesize}
+
+\paragraph{Chain of thought.} Command: \texttt{deadeye show-prompt loan -{}-seed 0 -{}-steps 2 -{}-cot}; oracle action in this state: \texttt{approve}.
+
+\begin{footnotesize}
+\begin{verbatim}
+[[user]]
+Applicant 3 of 20.
+  Age: 41
+  Annual income: $67.6k
+  Existing debt-to-income ratio: 0.43
+  Credit score: 752 (range 300-850)
+  Years in current employment: 2
+  Requested loan: $9.6k for car
+  If repaid the bank earns $1.2k; if the applicant defaults the bank loses $5.8k.
+Legal actions: approve, deny
+Think step by step in at most three short sentences, then end your reply with a final line of
+the form `Action: <name>`.
+\end{verbatim}
+\end{footnotesize}
+
+\paragraph{Likelihood scoring (also the LoRA training and inference prompt).} Command: \texttt{deadeye show-prompt loan -{}-seed 0 -{}-steps 2 -{}-method prompt\_score}; oracle action in this state: \texttt{approve}.
+
+\begin{footnotesize}
+\begin{verbatim}
+[[user]]
+Applicant 3 of 20.
+  Age: 41
+  Annual income: $67.6k
+  Existing debt-to-income ratio: 0.43
+  Credit score: 752 (range 300-850)
+  Years in current employment: 2
+  Requested loan: $9.6k for car
+  If repaid the bank earns $1.2k; if the applicant defaults the bank loses $5.8k.
+Legal actions: approve, deny
+Answer with only the action name of your chosen action.
+\end{verbatim}
+\end{footnotesize}
+
+\paragraph{Two oracle demonstrations from training seeds.} Command: \texttt{deadeye show-prompt loan -{}-seed 0 -{}-steps 2 -{}-few-shot 2}; oracle action in this state: \texttt{approve}.
+
+\begin{footnotesize}
+\begin{verbatim}
+[[user]]
+Applicant 4 of 20.
+  Age: 54
+  Annual income: $41.1k
+  Existing debt-to-income ratio: 0.34
+  Credit score: 727 (range 300-850)
+  Years in current employment: 0
+  Requested loan: $6.8k for debt consolidation
+  If repaid the bank earns $0.8k; if the applicant defaults the bank loses $4.1k.
+Legal actions: approve, deny
+Reply with exactly one line of the form `Action: <name>` and nothing else.
+[[assistant]]
+Action: approve
+[[user]]
+Applicant 2 of 20.
+  Age: 34
+  Annual income: $40.3k
+  Existing debt-to-income ratio: 0.20
+  Credit score: 686 (range 300-850)
+  Years in current employment: 23
+  Requested loan: $8.6k for small business
+  If repaid the bank earns $1.0k; if the applicant defaults the bank loses $5.2k.
+Legal actions: approve, deny
+Reply with exactly one line of the form `Action: <name>` and nothing else.
+[[assistant]]
+Action: approve
+[[user]]
+Applicant 3 of 20.
+  Age: 41
+  Annual income: $67.6k
+  Existing debt-to-income ratio: 0.43
+  Credit score: 752 (range 300-850)
+  Years in current employment: 2
+  Requested loan: $9.6k for car
+  If repaid the bank earns $1.2k; if the applicant defaults the bank loses $5.8k.
+Legal actions: approve, deny
+Reply with exactly one line of the form `Action: <name>` and nothing else.
+\end{verbatim}
+\end{footnotesize}
+
+\subsection{Gridworld navigation (\texttt{gridworld})}
+\label{app:prompt:gridworld}
+
+System message (identical in every variant; a single line in the prompt, wrapped here):
+
+\begin{footnotesize}
+\begin{verbatim}
+You are navigating a 5x5 grid. 'A' marks your position, 'G' the goal, '#' walls and '.' free
+cells. Rows are numbered top to bottom and columns left to right, both starting at 0. Each move
+goes one cell up, down, left or right; you cannot move into walls or off the grid. Reach the
+goal in as few moves as possible (at most 20 moves).
+\end{verbatim}
+\end{footnotesize}
+
+\paragraph{Default: free-form generation, action names.} Command: \texttt{deadeye show-prompt gridworld -{}-seed 0 -{}-steps 2}; oracle action in this state: \texttt{left}.
+
+\begin{footnotesize}
+\begin{verbatim}
+[[user]]
+Move 3 (max 20).
+Map:
+.#...
+#.G..
+...#.
+...A#
+#....
+You are at row 3, column 3. The goal is at row 1, column 2.
+Legal actions: down, left
+Reply with exactly one line of the form `Action: <name>` and nothing else.
+\end{verbatim}
+\end{footnotesize}
+
+\paragraph{Letter action format.} Command: \texttt{deadeye show-prompt gridworld -{}-seed 0 -{}-steps 2 -{}-action-format letter}; oracle action in this state: \texttt{left}.
+
+\begin{footnotesize}
+\begin{verbatim}
+[[user]]
+Move 3 (max 20).
+Map:
+.#...
+#.G..
+...#.
+...A#
+#....
+You are at row 3, column 3. The goal is at row 1, column 2.
+Legal actions: A, B
+  A = down
+  B = left
+Reply with exactly one line of the form `Action: <letter>` and nothing else.
+\end{verbatim}
+\end{footnotesize}
+
+\paragraph{Chain of thought.} Command: \texttt{deadeye show-prompt gridworld -{}-seed 0 -{}-steps 2 -{}-cot}; oracle action in this state: \texttt{left}.
+
+\begin{footnotesize}
+\begin{verbatim}
+[[user]]
+Move 3 (max 20).
+Map:
+.#...
+#.G..
+...#.
+...A#
+#....
+You are at row 3, column 3. The goal is at row 1, column 2.
+Legal actions: down, left
+Think step by step in at most three short sentences, then end your reply with a final line of
+the form `Action: <name>`.
+\end{verbatim}
+\end{footnotesize}
+
+\paragraph{Likelihood scoring (also the LoRA training and inference prompt).} Command: \texttt{deadeye show-prompt gridworld -{}-seed 0 -{}-steps 2 -{}-method prompt\_score}; oracle action in this state: \texttt{left}.
+
+\begin{footnotesize}
+\begin{verbatim}
+[[user]]
+Move 3 (max 20).
+Map:
+.#...
+#.G..
+...#.
+...A#
+#....
+You are at row 3, column 3. The goal is at row 1, column 2.
+Legal actions: down, left
+Answer with only the action name of your chosen action.
+\end{verbatim}
+\end{footnotesize}
+
+\paragraph{Two oracle demonstrations from training seeds.} Command: \texttt{deadeye show-prompt gridworld -{}-seed 0 -{}-steps 2 -{}-few-shot 2}; oracle action in this state: \texttt{left}.
+
+\begin{footnotesize}
+\begin{verbatim}
+[[user]]
+Move 4 (max 20).
+Map:
+.....
+...A.
+#.##G
+.....
+.#.#.
+You are at row 1, column 3. The goal is at row 2, column 4.
+Legal actions: up, left, right
+Reply with exactly one line of the form `Action: <name>` and nothing else.
+[[assistant]]
+Action: right
+[[user]]
+Move 2 (max 20).
+Map:
+.A...
+#.#..
+..#..
+..#.G
+..#..
+You are at row 0, column 1. The goal is at row 3, column 4.
+Legal actions: down, left, right
+Reply with exactly one line of the form `Action: <name>` and nothing else.
+[[assistant]]
+Action: right
+[[user]]
+Move 3 (max 20).
+Map:
+.#...
+#.G..
+...#.
+...A#
+#....
+You are at row 3, column 3. The goal is at row 1, column 2.
+Legal actions: down, left
+Reply with exactly one line of the form `Action: <name>` and nothing else.
+\end{verbatim}
+\end{footnotesize}
+
+\subsection{Tic-tac-toe (\texttt{tictactoe})}
+\label{app:prompt:tictactoe}
+
+System message (identical in every variant; a single line in the prompt, wrapped here):
+
+\begin{footnotesize}
+\begin{verbatim}
+You are playing tic-tac-toe as 'X' against an opponent playing 'O'. The board cells are numbered
+1 to 9 from left to right, top to bottom. Three of your marks in a row, column or diagonal wins.
+Choose the number of an empty cell. Win if you can, otherwise force a draw; never lose if
+avoidable.
+\end{verbatim}
+\end{footnotesize}
+
+\paragraph{Default: free-form generation, action names.} Command: \texttt{deadeye show-prompt tictactoe -{}-seed 0 -{}-steps 2}; oracle action in this state: \texttt{7}.
+
+\begin{footnotesize}
+\begin{verbatim}
+[[user]]
+You are 'X'. Board (numbers mark empty cells):
+X 2 O
+X 5 6
+7 O 9
+Legal actions: 2, 5, 6, 7, 9
+Reply with exactly one line of the form `Action: <name>` and nothing else.
+\end{verbatim}
+\end{footnotesize}
+
+\paragraph{Letter action format.} Command: \texttt{deadeye show-prompt tictactoe -{}-seed 0 -{}-steps 2 -{}-action-format letter}; oracle action in this state: \texttt{7}.
+
+\begin{footnotesize}
+\begin{verbatim}
+[[user]]
+You are 'X'. Board (numbers mark empty cells):
+X 2 O
+X 5 6
+7 O 9
+Legal actions: A, B, C, D, E
+  A = 2
+  B = 5
+  C = 6
+  D = 7
+  E = 9
+Reply with exactly one line of the form `Action: <letter>` and nothing else.
+\end{verbatim}
+\end{footnotesize}
+
+\paragraph{Chain of thought.} Command: \texttt{deadeye show-prompt tictactoe -{}-seed 0 -{}-steps 2 -{}-cot}; oracle action in this state: \texttt{7}.
+
+\begin{footnotesize}
+\begin{verbatim}
+[[user]]
+You are 'X'. Board (numbers mark empty cells):
+X 2 O
+X 5 6
+7 O 9
+Legal actions: 2, 5, 6, 7, 9
+Think step by step in at most three short sentences, then end your reply with a final line of
+the form `Action: <name>`.
+\end{verbatim}
+\end{footnotesize}
+
+\paragraph{Likelihood scoring (also the LoRA training and inference prompt).} Command: \texttt{deadeye show-prompt tictactoe -{}-seed 0 -{}-steps 2 -{}-method prompt\_score}; oracle action in this state: \texttt{7}.
+
+\begin{footnotesize}
+\begin{verbatim}
+[[user]]
+You are 'X'. Board (numbers mark empty cells):
+X 2 O
+X 5 6
+7 O 9
+Legal actions: 2, 5, 6, 7, 9
+Answer with only the action name of your chosen action.
+\end{verbatim}
+\end{footnotesize}
+
+\paragraph{Two oracle demonstrations from training seeds.} Command: \texttt{deadeye show-prompt tictactoe -{}-seed 0 -{}-steps 2 -{}-few-shot 2}; oracle action in this state: \texttt{7}.
+
+\begin{footnotesize}
+\begin{verbatim}
+[[user]]
+You are 'X'. Board (numbers mark empty cells):
+1 2 3
+4 5 6
+7 8 9
+Legal actions: 1, 2, 3, 4, 5, 6, 7, 8, 9
+Reply with exactly one line of the form `Action: <name>` and nothing else.
+[[assistant]]
+Action: 1
+[[user]]
+You are 'O'. Board (numbers mark empty cells):
+1 2 3
+4 O 6
+X 8 X
+Legal actions: 1, 2, 3, 4, 6, 8
+Reply with exactly one line of the form `Action: <name>` and nothing else.
+[[assistant]]
+Action: 8
+[[user]]
+You are 'X'. Board (numbers mark empty cells):
+X 2 O
+X 5 6
+7 O 9
+Legal actions: 2, 5, 6, 7, 9
+Reply with exactly one line of the form `Action: <name>` and nothing else.
+\end{verbatim}
+\end{footnotesize}
+
+\subsection{Blackjack (\texttt{blackjack})}
+\label{app:prompt:blackjack}
+
+System message (identical in every variant; a single line in the prompt, wrapped here):
+
+\begin{footnotesize}
+\begin{verbatim}
+You are playing blackjack against the dealer. Cards 2-10 are worth their number, face cards are
+worth 10 and an ace is worth 11 if that does not bust you, otherwise 1. You may 'hit' (take
+another card) or 'stand' (end your turn). If you exceed 21 you bust and lose. After you stand,
+the dealer draws until reaching 17 or more. You win if your total is higher than the dealer's or
+the dealer busts; equal totals tie. A two-card 21 pays extra. Maximise your expected winnings.
+\end{verbatim}
+\end{footnotesize}
+
+\paragraph{Default: free-form generation, action names.} Command: \texttt{deadeye show-prompt blackjack -{}-seed 0 -{}-steps 2}; oracle action in this state: \texttt{stand}.
+
+\begin{footnotesize}
+\begin{verbatim}
+[[user]]
+Your cards: 7, 2, 10 (total 19).
+Dealer shows: 10.
+Legal actions: hit, stand
+Reply with exactly one line of the form `Action: <name>` and nothing else.
+\end{verbatim}
+\end{footnotesize}
+
+\paragraph{Letter action format.} Command: \texttt{deadeye show-prompt blackjack -{}-seed 0 -{}-steps 2 -{}-action-format letter}; oracle action in this state: \texttt{stand}.
+
+\begin{footnotesize}
+\begin{verbatim}
+[[user]]
+Your cards: 7, 2, 10 (total 19).
+Dealer shows: 10.
+Legal actions: A, B
+  A = hit
+  B = stand
+Reply with exactly one line of the form `Action: <letter>` and nothing else.
+\end{verbatim}
+\end{footnotesize}
+
+\paragraph{Chain of thought.} Command: \texttt{deadeye show-prompt blackjack -{}-seed 0 -{}-steps 2 -{}-cot}; oracle action in this state: \texttt{stand}.
+
+\begin{footnotesize}
+\begin{verbatim}
+[[user]]
+Your cards: 7, 2, 10 (total 19).
+Dealer shows: 10.
+Legal actions: hit, stand
+Think step by step in at most three short sentences, then end your reply with a final line of
+the form `Action: <name>`.
+\end{verbatim}
+\end{footnotesize}
+
+\paragraph{Likelihood scoring (also the LoRA training and inference prompt).} Command: \texttt{deadeye show-prompt blackjack -{}-seed 0 -{}-steps 2 -{}-method prompt\_score}; oracle action in this state: \texttt{stand}.
+
+\begin{footnotesize}
+\begin{verbatim}
+[[user]]
+Your cards: 7, 2, 10 (total 19).
+Dealer shows: 10.
+Legal actions: hit, stand
+Answer with only the action name of your chosen action.
+\end{verbatim}
+\end{footnotesize}
+
+\paragraph{Two oracle demonstrations from training seeds.} Command: \texttt{deadeye show-prompt blackjack -{}-seed 0 -{}-steps 2 -{}-few-shot 2}; oracle action in this state: \texttt{stand}.
+
+\begin{footnotesize}
+\begin{verbatim}
+[[user]]
+Your cards: 8, 5 (total 13).
+Dealer shows: 4.
+Legal actions: hit, stand
+Reply with exactly one line of the form `Action: <name>` and nothing else.
+[[assistant]]
+Action: stand
+[[user]]
+Your cards: 6, 10, 2 (total 18).
+Dealer shows: 7.
+Legal actions: hit, stand
+Reply with exactly one line of the form `Action: <name>` and nothing else.
+[[assistant]]
+Action: stand
+[[user]]
+Your cards: 7, 2, 10 (total 19).
+Dealer shows: 10.
+Legal actions: hit, stand
+Reply with exactly one line of the form `Action: <name>` and nothing else.
+\end{verbatim}
+\end{footnotesize}

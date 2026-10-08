@@ -111,7 +111,10 @@ class OpenAICompatModel(LanguageModel):
         floor = (min(top.values()) - 5.0) if top else -100.0
         scores = []
         for c in choices:
-            cands = [lp for tok, lp in top.items() if c.startswith(tok) or tok.startswith(c)]
+            # A token longer than the choice only counts when the rest is punctuation ("A." / "A)"), never a word:
+            # otherwise "As", "After" or "Answer" would be credited to option "A" and "In" / "It" to option "I".
+            cands = [lp for tok, lp in top.items()
+                     if c.startswith(tok) or (tok.startswith(c) and not tok[len(c):][:1].isalnum())]
             scores.append(max(cands) if cands else floor)
         usage = resp.get("usage", {}) or {}
         return ScoreResult(logprobs=scores, prompt_tokens=int(usage.get("prompt_tokens", 0)), latency_s=latency,

@@ -86,3 +86,38 @@ def test_registry_loads_tiny_and_overrides_metadata(tiny_model_path):
     from deadeye.models.registry import load_model
     m = load_model({"backend": "hf", "id": str(tiny_model_path), "params": 123, "family": "tiny"})
     assert m.info.params == 123 and m.info.family == "tiny" and m.info.extra["counted_params"] > 0
+
+
+def test_score_choices_prefix_choices_are_terminated(tiny_model):
+    """A choice whose tokens extend another's (arm_1 / arm_10 under digit-splitting tokenisers) must be able to win."""
+    import torch
+    tok = tiny_model.tokenizer
+    c0 = tok("up", add_special_tokens=False)["input_ids"]
+    c1 = tok("up down", add_special_tokens=False)["input_ids"]
+    assert c1[:len(c0)] == c0 and len(c1) > len(c0)  # precondition: strict token prefix
+    res = tiny_model.score_choices(MSGS, ["up", "up down"])
+    p = tiny_model.encode(MSGS)
+    for c, lp in zip((c0, c1), res.logprobs):
+        seq = c + [tok.eos_token_id]
+        with torch.no_grad():
+            logp = torch.log_softmax(tiny_model.model(input_ids=torch.tensor([p + seq])).logits.float(), -1)[0]
+        assert abs(sum(logp[len(p) - 1 + i, t].item() for i, t in enumerate(seq)) - lp) < 1e-3
+    assert res.choice_tokens == [len(c0) + 1, len(c1) + 1]
+    # prefix-free choice sets are scored exactly as before (no terminator)
+    assert tiny_model.score_choices(MSGS, ["up", "down"]).choice_tokens == [len(c0), len(tok("down", add_special_tokens=False)["input_ids"])]
+
+
+def test_greedy_generation_ignores_checkpoint_repetition_penalty(tiny_model_path, tmp_path):
+    """Checkpoint generation_config.json defaults (Qwen2.5-Instruct: repetition_penalty 1.05) must not alter greedy decoding."""
+    import json
+    import shutil
+    from deadeye.models.hf_backend import HFModel
+    ref = HFModel(str(tiny_model_path))
+    want = ref.generate(MSGS, max_new_tokens=16).text
+    d = tmp_path / "tiny_rp"
+    shutil.copytree(tiny_model_path, d)
+    gc = {"bos_token_id": ref.tokenizer.bos_token_id, "eos_token_id": ref.tokenizer.eos_token_id,
+          "pad_token_id": ref.tokenizer.pad_token_id, "do_sample": True, "temperature": 0.7, "top_p": 0.8, "top_k": 20,
+          "repetition_penalty": 1.3}
+    (d / "generation_config.json").write_text(json.dumps(gc))
+    assert HFModel(str(d)).generate(MSGS, max_new_tokens=16).text == want

@@ -117,3 +117,39 @@ def test_config_keys_and_episode_override(tmp_path):
     assert cfg.models[0].key == "a__b" and cfg.methods[0].key == "prompt_score"
     with pytest.raises(ValueError):
         RunConfig.from_dict({"name": "x", "envs": [{"name": "bandit"}, {"name": "bandit", "params": {"horizon": 3}}]})
+
+
+def test_fallback_actions_do_not_count_as_oracle_agreement():
+    env = make_env("loan", n_applicants=10)
+    pol = make_policy("prompt_generate", {}, model=MockModel(format_failure_rate=1.0))
+    pol.bind(env)
+    for seed in range(5):
+        ep, steps = run_episode(env, pol, seed=seed)
+        assert ep["illegal_rate"] == 1.0 and ep["oracle_agreement"] == 0.0
+
+
+def test_json_default_keeps_numpy_bools_boolean():
+    from deadeye.runner import _json_default
+    out = json.loads(json.dumps({"a": np.bool_(True), "b": np.float32(0.5), "c": np.int64(3)}, default=_json_default))
+    assert out == {"a": True, "b": 0.5, "c": 3}
+
+
+def test_runner_never_holds_two_model_copies(tmp_path, monkeypatch):
+    import deadeye.runner as runner_mod
+    live, peak = set(), [0]
+    orig = runner_mod.load_model
+
+    def tracking_load(spec, catalog=None):
+        m = orig(spec, catalog)
+        live.add(id(m))
+        peak[0] = max(peak[0], len(live))
+        m.close = lambda: live.discard(id(m))
+        return m
+
+    monkeypatch.setattr(runner_mod, "load_model", tracking_load)
+    cfg = RunConfig.from_dict({
+        "name": "mem", "output_dir": str(tmp_path / "res"), "seeds": {"start": 0, "n": 1}, "catalog": None,
+        "envs": [{"name": "loan", "params": {"n_applicants": 2}}], "models": [{"backend": "mock", "id": "m"}],
+        "methods": [{"name": "prompt_generate"}, {"name": "lora_sft"}, {"name": "prompt_score"}], "baselines": []})
+    Runner(cfg).run()
+    assert peak[0] == 1 and not live
