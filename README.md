@@ -7,7 +7,7 @@ instruction-tuned, how it was quantised, how much it is allowed to think, and th
 task itself all compete for the explanation. DeadEye measures them together.
 
 It takes any open-weight model, as local Hugging Face weights or through an OpenAI-compatible
-server, and evaluates it on six procedurally generated tasks with known optimal policies, under
+server, and evaluates it on seven procedurally generated tasks with known optimal policies, under
 five conversion methods, with paired seeds, bootstrap confidence intervals and a log of every
 decision. Every table and figure in the paper is produced by `deadeye report` from those logs.
 
@@ -48,9 +48,9 @@ deadeye compare results/pilot_cpu --pair "loan:Qwen__Qwen2.5-0.5B-Instruct/promp
 
 | Layer | Contents |
 |---|---|
-| Environments (`deadeye.envs`) | `bandit`, `contextual_bandit`, `loan` (semantic tabular decisions, with OOD shifts), `gridworld`, `tictactoe`, `blackjack`; each seeded, with an oracle and numeric features |
+| Environments (`deadeye.envs`) | `bandit`, `contextual_bandit`, `loan` (semantic tabular decisions, with OOD shifts), `gridworld`, `tictactoe`, `blackjack`, `support` (customer-support triage under a written policy); each seeded, with an oracle and numeric features |
 | Backends (`deadeye.models`) | `hf` (generate, exact action log-likelihoods, hidden states, LoRA), `openai` (any OpenAI-compatible server; first-token scoring), `mock` and a tiny random model for CI |
-| Methods (`deadeye.policies`) | `prompt_generate` (zero/few-shot, CoT), `prompt_score`, `probe` (linear head on hidden states), `lora_sft` (behaviour cloning), `feature_probe` (no-LM control), plus `random`, `oracle`, `ucb1` |
+| Methods (`deadeye.policies`) | `prompt_free` (the unconverted assistant, for before/after comparisons), `prompt_generate` (zero/few-shot, CoT), `prompt_score`, `probe` (linear head on hidden states), `lora_sft` (behaviour cloning), `feature_probe` (no-LM control), plus `random`, `oracle`, `ucb1` |
 | Runner (`deadeye.runner`) | factorial (env x model x method) over paired seeds, resumable, logs every decision with the raw output, parsed action, legal set and oracle action |
 | Statistics (`deadeye.metrics`) | normalised scores (random = 0, oracle = 1), bootstrap CIs, IQM, paired permutation tests, Holm correction, power calculation |
 | Report (`deadeye.report`) | Markdown/LaTeX tables, scale curves, format-failure curves, cost-quality frontier, heatmaps, HTML page |

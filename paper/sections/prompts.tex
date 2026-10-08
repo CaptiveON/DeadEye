@@ -710,3 +710,147 @@ Legal actions: hit, stand
 Reply with exactly one line of the form `Action: <name>` and nothing else.
 \end{verbatim}
 \end{footnotesize}
+
+\subsection{Customer-support triage (\texorpdfstring{\texttt{support}}{support})}
+\label{app:prompt:support}
+
+System message (identical in every variant; the policy text is part of it):
+
+\begin{footnotesize}
+\begin{verbatim}
+You are a customer support agent deciding how to resolve tickets. For each ticket you see the
+  customer's message and the order facts. Apply the company policy exactly:
+1. If the customer has 3 or more prior claims and the issue is a damaged item, a wrong item or a
+  missing delivery, escalate to the fraud team.
+2. Billing errors: refund.
+3. Changed mind: refund if the item was delivered at most 14 days ago (30 days for premium
+  customers), otherwise deny.
+4. Late delivery (item received): partial_refund if it was more than 7 days late, otherwise
+  deny.
+5. Not received: if it is at most 3 days past the promised date, deny (ask the customer to
+  wait); if later and the order value is over $100, escalate; otherwise refund.
+6. Damaged or wrong item: if no photo evidence is attached and the order value is over $50,
+  request_evidence; otherwise refund if the customer asks for a refund, else replace if a
+  replacement is in stock, else refund.
+Correct decisions earn credit; unwarranted payouts cost the order value and refusing a
+  legitimate claim loses the customer.
+\end{verbatim}
+\end{footnotesize}
+
+\paragraph{Default: free-form generation, action names.} Command: \texttt{deadeye show-prompt support -{}-seed 0 -{}-steps 2}; oracle action in this state: \texttt{escalate}.
+
+\begin{footnotesize}
+\begin{verbatim}
+[[user]]
+Ticket 3 of 10.
+Customer message: "Wrong item in the box. I don't want it, please refund."
+Order: backpack, value $59.79. Delivered 53 days ago.
+Photo evidence attached: no. Prior claims by this customer: 3. Customer tier: standard.
+  Replacement in stock: yes.
+Legal actions: refund, replace, partial_refund, request_evidence, escalate, deny
+Reply with exactly one line of the form `Action: <name>` and nothing else.
+\end{verbatim}
+\end{footnotesize}
+
+\paragraph{Free reply (the unconverted assistant).} Command: \texttt{deadeye show-prompt support -{}-seed 0 -{}-steps 2 -{}-method prompt\_free}; oracle action in this state: \texttt{escalate}.
+
+\begin{footnotesize}
+\begin{verbatim}
+[[user]]
+Ticket 3 of 10.
+Customer message: "Wrong item in the box. I don't want it, please refund."
+Order: backpack, value $59.79. Delivered 53 days ago.
+Photo evidence attached: no. Prior claims by this customer: 3. Customer tier: standard.
+  Replacement in stock: yes.
+Legal actions: refund, replace, partial_refund, request_evidence, escalate, deny
+What do you do? Answer in your own words.
+\end{verbatim}
+\end{footnotesize}
+
+\paragraph{Letter action format.} Command: \texttt{deadeye show-prompt support -{}-seed 0 -{}-steps 2 -{}-action-format letter}; oracle action in this state: \texttt{escalate}.
+
+\begin{footnotesize}
+\begin{verbatim}
+[[user]]
+Ticket 3 of 10.
+Customer message: "Wrong item in the box. I don't want it, please refund."
+Order: backpack, value $59.79. Delivered 53 days ago.
+Photo evidence attached: no. Prior claims by this customer: 3. Customer tier: standard.
+  Replacement in stock: yes.
+Legal actions: A, B, C, D, E, F
+  A = refund
+  B = replace
+  C = partial_refund
+  D = request_evidence
+  E = escalate
+  F = deny
+Reply with exactly one line of the form `Action: <letter>` and nothing else.
+\end{verbatim}
+\end{footnotesize}
+
+\paragraph{Chain of thought.} Command: \texttt{deadeye show-prompt support -{}-seed 0 -{}-steps 2 -{}-cot}; oracle action in this state: \texttt{escalate}.
+
+\begin{footnotesize}
+\begin{verbatim}
+[[user]]
+Ticket 3 of 10.
+Customer message: "Wrong item in the box. I don't want it, please refund."
+Order: backpack, value $59.79. Delivered 53 days ago.
+Photo evidence attached: no. Prior claims by this customer: 3. Customer tier: standard.
+  Replacement in stock: yes.
+Legal actions: refund, replace, partial_refund, request_evidence, escalate, deny
+Think step by step in at most three short sentences, then end your reply with a final line of
+  the form `Action: <name>`.
+\end{verbatim}
+\end{footnotesize}
+
+\paragraph{Likelihood scoring (also the LoRA training and inference prompt).} Command: \texttt{deadeye show-prompt support -{}-seed 0 -{}-steps 2 -{}-method prompt\_score}; oracle action in this state: \texttt{escalate}.
+
+\begin{footnotesize}
+\begin{verbatim}
+[[user]]
+Ticket 3 of 10.
+Customer message: "Wrong item in the box. I don't want it, please refund."
+Order: backpack, value $59.79. Delivered 53 days ago.
+Photo evidence attached: no. Prior claims by this customer: 3. Customer tier: standard.
+  Replacement in stock: yes.
+Legal actions: refund, replace, partial_refund, request_evidence, escalate, deny
+Answer with only the action name of your chosen action.
+\end{verbatim}
+\end{footnotesize}
+
+\paragraph{Two oracle demonstrations from training seeds.} Command: \texttt{deadeye show-prompt support -{}-seed 0 -{}-steps 2 -{}-few-shot 2}; oracle action in this state: \texttt{escalate}.
+
+\begin{footnotesize}
+\begin{verbatim}
+[[user]]
+Ticket 4 of 10.
+Customer message: "I don't want the backpack anymore. It's unused."
+Order: backpack, value $46.76. Delivered 54 days ago.
+Photo evidence attached: yes. Prior claims by this customer: 1. Customer tier: premium.
+  Replacement in stock: yes.
+Legal actions: refund, replace, partial_refund, request_evidence, escalate, deny
+Reply with exactly one line of the form `Action: <name>` and nothing else.
+[[assistant]]
+Action: deny
+[[user]]
+Ticket 2 of 10.
+Customer message: "There's a wrong charge on my phone case order, please fix it."
+Order: phone case, value $67.26. Delivered 8 days ago.
+Photo evidence attached: no. Prior claims by this customer: 2. Customer tier: standard.
+  Replacement in stock: yes.
+Legal actions: refund, replace, partial_refund, request_evidence, escalate, deny
+Reply with exactly one line of the form `Action: <name>` and nothing else.
+[[assistant]]
+Action: refund
+[[user]]
+Ticket 3 of 10.
+Customer message: "Wrong item in the box. I don't want it, please refund."
+Order: backpack, value $59.79. Delivered 53 days ago.
+Photo evidence attached: no. Prior claims by this customer: 3. Customer tier: standard.
+  Replacement in stock: yes.
+Legal actions: refund, replace, partial_refund, request_evidence, escalate, deny
+Reply with exactly one line of the form `Action: <name>` and nothing else.
+\end{verbatim}
+\end{footnotesize}
+

@@ -38,7 +38,7 @@ def test_report_from_smoke_results(tmp_path):
     d = smoke_config(str(tmp_path / "res"))
     d["envs"] = d["envs"][:2]
     d["models"] = d["models"][:1]
-    d["methods"] = d["methods"][:2]
+    d["methods"] = [m for m in d["methods"] if m["name"] in ("prompt_generate", "prompt_score") and "label" not in m]
     cfg = RunConfig.from_dict(d)
     Runner(cfg).run()
     res = build_report([str(tmp_path / "res")], tmp_path / "rep", paper_dir=tmp_path / "paper")

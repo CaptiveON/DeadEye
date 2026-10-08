@@ -13,6 +13,7 @@ envs:
   - {name: gridworld, params: {size: 6}}
   - {name: tictactoe, params: {opponent: random}, n_episodes: 300}          # +-1 outcomes: more episodes for power
   - {name: blackjack, params: {hands_per_episode: 20}, n_episodes: 100}     # 20 hands per episode (2000 hands)
+  - {name: support, params: {n_tickets: 20}}
 models:
   # --- Qwen2.5 ladder: base + instruct at every size (H1, H2) ---
   - {backend: hf, id: Qwen/Qwen2.5-0.5B-Instruct}
@@ -51,6 +52,7 @@ models:
   - {backend: hf, id: google/gemma-3-12b-it}
   - {backend: hf, id: google/gemma-3-27b-it, quantization: int4}
 methods:
+  - {name: prompt_free, params: {max_new_tokens: 128}}
   - {name: prompt_generate, params: {max_new_tokens: 16}}
   - {name: prompt_generate, params: {max_new_tokens: 256, cot: true}, label: prompt_generate_cot}
   - {name: prompt_score}

@@ -30,7 +30,7 @@ fitted within one family on the sweep results.
 | H1b | Slope is larger for gridworld and tictactoe than for loan | bootstrap CI of (b_planning - b_loan) excludes 0 | CI includes 0 |
 | H2a | Instruct > base under `prompt_generate` at every size | paired difference CI > 0 at >= 80% of sizes | fewer than 50% |
 | H2b | The instruct - base gap under `probe` and `lora_sft` is < 0.05 | CI of the mean gap lies within [-0.05, 0.05] | CI excludes that interval |
-| H3a | Best `lora_sft` model <= 1.7B >= `prompt_generate` model 10x larger (in-distribution) | paired difference CI >= 0 on at least 4 of 6 tasks | fewer than 3 tasks |
+| H3a | Best `lora_sft` model <= 1.7B >= `prompt_generate` model 10x larger (in-distribution) | paired difference CI >= 0 on at least 5 of 7 tasks | 3 or fewer tasks |
 | H3b | On `loan_sign_flip` and `loan_covariate_shift`, the small adapted model's loss relative to in-distribution is larger than the large model's | CI of the interaction excludes 0 | CI includes 0 |
 | H4a | Illegal-action rate under `prompt_score` is 0 | by construction | n/a |
 | H4b | `b_score` < 0.5 `b_generate` | bootstrap CI of the ratio < 0.5 | CI includes 0.5 or above |

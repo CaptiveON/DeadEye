@@ -9,10 +9,12 @@ envs:
   - {name: loan, params: {n_applicants: 20}}
   - {name: gridworld, params: {size: 6}}
   - {name: tictactoe}
+  - {name: support, params: {n_tickets: 20}}
 models:
   - {backend: openai, id: qwen2.5:7b-instruct, base_url: "http://localhost:11434/v1", params: 7620000000, family: qwen2.5, instruct: true, label: ollama-qwen2.5-7b}
   - {backend: openai, id: Qwen/Qwen2.5-32B-Instruct, base_url: "http://localhost:8000/v1", params: 32500000000, family: qwen2.5, instruct: true, label: vllm-qwen2.5-32b}
 methods:
+  - {name: prompt_free, params: {max_new_tokens: 128}}
   - {name: prompt_generate, params: {max_new_tokens: 16}}
   - {name: prompt_score, params: {action_format: letter}, label: score_letter}
 baselines: [random, oracle, ucb1]

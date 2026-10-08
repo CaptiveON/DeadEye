@@ -16,6 +16,8 @@ envs:
   - {name: gridworld, params: {size: 9, n_walls: 16}, label: gridworld_large}
   - {name: tictactoe, params: {opponent: random}, n_episodes: 300}
   - {name: tictactoe, params: {opponent: minimax}, n_episodes: 300, label: tictactoe_minimax}
+  - {name: support, params: {n_tickets: 20}}
+  - {name: support, params: {n_tickets: 40}, label: support_long}                                              # more tickets per episode
 models:
   - {backend: hf, id: Qwen/Qwen2.5-1.5B-Instruct}
   - {backend: hf, id: Qwen/Qwen2.5-7B-Instruct}

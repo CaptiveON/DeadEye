@@ -193,12 +193,14 @@ def smoke_config(output_dir: str) -> dict:
             {"name": "gridworld", "params": {"size": 4, "max_steps": 10, "min_distance": 2}},
             {"name": "tictactoe"},
             {"name": "blackjack"},
+            {"name": "support", "params": {"n_tickets": 3}},
         ],
         "models": [
             {"backend": "mock", "id": "mock-random", "strategy": "random", "format_failure_rate": 0.25, "params": 1000, "family": "mock", "label": "mock"},
             {"backend": "hf", "id": "tiny-random", "params": 205120, "family": "tiny", "label": "tiny"},
         ],
         "methods": [
+            {"name": "prompt_free", "params": {"max_new_tokens": 8}},
             {"name": "prompt_generate", "params": {"max_new_tokens": 6}},
             {"name": "prompt_score"},
             {"name": "prompt_score", "params": {"action_format": "letter"}, "label": "prompt_score_letter"},

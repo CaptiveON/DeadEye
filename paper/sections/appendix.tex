@@ -49,7 +49,10 @@ Task & Parameter & Default & Main sweep & Ablation variants\\
  & \texttt{agent\_mark} & \texttt{alternate} & \texttt{alternate} & \\
 \midrule
 \texttt{blackjack} & \texttt{natural\_bonus} & true & true & \\
- & episodes & & 300 & 300\\
+ & \texttt{hands\_per\_episode} & 1 & 20 & 20\\
+ & episodes & & 100 & 100\\
+\midrule
+\texttt{support} & \texttt{n\_tickets} & 10 & 20 & 40 (\texttt{support\_long})\\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -71,6 +74,9 @@ The agent plays X on even seeds and moves first, and O on odd seeds, in which ca
 
 \paragraph{Blackjack.}
 A generator seeded with $\sigma+20011$ draws two streams of 32 cards, one for the player and one for the dealer, each card uniform over the 13 entries $\{1,\dots,9,10,10,10,10\}$. The player receives the first two cards of the player stream and the dealer the first two of the dealer stream, and the dealer's first card is shown. The dealer's hand is not checked for a natural before the player acts, and a player's two-card 21 against a dealer total of 21 is a tie. The feature vector is the hand total divided by 21, the soft-hand flag and the dealer's card divided by 10. An episode has at least one decision and is capped at 12.
+
+\paragraph{Customer-support triage.}
+A generator seeded with $\sigma+30013$ draws, for each of the $n$ tickets, the issue type uniformly from six (damaged, not received, wrong item, late, changed mind, billing error), what the customer asks for (refund with probability 0.45, replacement 0.25, nothing specific 0.30), the item from a list of eight, the order value $\operatorname{clip}(e^{Z},5,500)$ with $Z\sim\mathcal{N}(\ln 60,0.8^2)$, the days since delivery (uniform on 0 to 60), the days past the promised date (uniform on 0 to 14), whether photo evidence is attached (probability 0.5), the number of prior claims (from $\{0,0,0,1,1,2,3,4\}$), the customer tier (premium with probability 0.3) and whether a replacement is in stock (probability 0.7). The customer message is one of two or three fixed sentences per issue and request, with the item name filled in; one of them is the familiar ``I received the package damaged. I need a refund today.'' The six-rule policy in the task description is the oracle. A correct decision earns $+1$; a wrong one $-1$, less the payout in hundreds of dollars when the agent refunds, replaces (or half of it for a partial refund) where the policy said deny, request evidence or escalate, and less a further 1 when it denies a claim the policy would have paid. The feature vector is the one-hot issue and request, the scaled timing, value, evidence, prior-claim, tier and stock fields.
 
 \paragraph{Other sources of randomness.}
 The random baseline uses one generator per cell, seeded with 0. When a decision is illegal, the substitute action comes from a generator seeded with $\sigma+7$ for that episode. The behavior policy that collects probe and LoRA training states uses one generator, seeded with 0, across all training episodes. Few-shot demonstrations take one state from each training seed in order, starting at 100000; a generator seeded with 12345 draws the number of oracle steps taken before the demonstration state uniformly from 0 to $\min(5,H)-1$, and if the episode ends during those steps the initial state is used instead. Greedy decoding uses no randomness; for sampled decoding the model's generator is seeded with the episode seed before each episode.

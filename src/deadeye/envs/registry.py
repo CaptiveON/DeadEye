@@ -6,6 +6,7 @@ from deadeye.envs.blackjack import BlackjackEnv
 from deadeye.envs.contextual_bandit import ContextualBanditEnv
 from deadeye.envs.gridworld import GridworldEnv
 from deadeye.envs.loan import LoanEnv
+from deadeye.envs.support import SupportEnv
 from deadeye.envs.tictactoe import TicTacToeEnv
 
 ENV_REGISTRY: dict[str, type[Environment]] = {
@@ -15,6 +16,7 @@ ENV_REGISTRY: dict[str, type[Environment]] = {
     GridworldEnv.name: GridworldEnv,
     TicTacToeEnv.name: TicTacToeEnv,
     BlackjackEnv.name: BlackjackEnv,
+    SupportEnv.name: SupportEnv,
 }
 
 

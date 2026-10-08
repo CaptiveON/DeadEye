@@ -54,6 +54,20 @@ class PromptGeneratePolicy(_PromptPolicy):
         return {**super().describe(), "max_new_tokens": self.max_new_tokens, "temperature": self.temperature}
 
 
+class PromptFreePolicy(PromptGeneratePolicy):
+    """The 'before conversion' condition: the model answers the situation in its own words, with no output
+    format imposed, and an action is extracted from the free text if one can be. Measures what an unconverted
+    assistant costs (latency, tokens) and how often its reply contains a usable decision at all."""
+
+    name = "prompt_free"
+
+    def __init__(self, model: LanguageModel, prompt: PromptConfig, max_new_tokens: int = 128, temperature: float = 0.0,
+                 stop: list[str] | None = None) -> None:
+        super().__init__(model, prompt, max_new_tokens=max_new_tokens, temperature=temperature, stop=stop)
+        prompt.mode = "free"
+        self.prompt = prompt
+
+
 class PromptScorePolicy(_PromptPolicy):
     name = "prompt_score"
 

@@ -284,7 +284,8 @@ class Runner:
 
 
 def required_capabilities(name: str) -> set[str]:
-    return {"prompt_generate": {"generate"}, "prompt_score": {"score"}, "probe": {"embed"}, "lora_sft": {"train"}}.get(name, set())
+    return {"prompt_free": {"generate"}, "prompt_generate": {"generate"}, "prompt_score": {"score"}, "probe": {"embed"},
+            "lora_sft": {"train"}}.get(name, set())
 
 
 def _method_mutates(name: str) -> bool:

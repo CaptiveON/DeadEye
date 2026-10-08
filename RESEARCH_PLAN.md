@@ -32,13 +32,14 @@ We treat the conversion method as an experimental factor in its own right, with 
 
 | Method (`methods[].name`) | What is used from the model | Training data | Where it runs |
 |---|---|---|---|
+| `prompt_free` | the unconverted assistant: it answers the situation in its own words and an action is extracted from the reply if one can be; the reference point for "before conversion" latency, tokens and usable-decision rate | none | any backend |
 | `prompt_generate` | free-form generation, parsed into an action (zero-shot, few-shot, chain-of-thought variants) | none | any backend |
 | `prompt_score` | exact log-likelihood of each legal action as a continuation (lm-eval-harness style) | none | `hf`; first-token approximation on `openai` |
 | `probe` | hidden state of the prompt at one layer, with a logistic-regression head | oracle-labelled states from training seeds | `hf` |
 | `lora_sft` | LoRA behaviour cloning on oracle (observation, action) pairs, then scoring | same | `hf` |
 | `feature_probe` | **no language model**: the same logistic head on the environment's raw numeric features | same | anywhere |
 
-`feature_probe` is the control that answers "does the language model's representation add anything
+`prompt_free` is the "before" condition every other method is measured against. `feature_probe` is the control that answers "does the language model's representation add anything
 over the raw features?". `random` and `oracle` anchor the score scale; `ucb1` is the classical
 algorithmic reference on the bandit.
 
@@ -59,6 +60,7 @@ that matter in practice:
 | `gridworld` | deterministic multi-step planning | BFS shortest path | success, excess steps |
 | `tictactoe` | adversarial, perfect information | minimax | win rate |
 | `blackjack` | risk under uncertainty | basic strategy (hit/stand) | expected return |
+| `support` | applying a written company policy to a customer's message ("I received the package damaged. I need a refund today.") | the policy's rules | correct-decision rate, payout waste |
 
 Every episode return is normalised so that the random policy scores 0 and the oracle scores 1 on
 that environment; a normalised score is comparable across tasks and the cross-task mean is a single

@@ -31,7 +31,7 @@ Models up to 14B run in bfloat16. The largest rungs (Qwen2.5 32B and 72B, Qwen3 
 \subsection{Factors and levels}
 \label{sec:setup:factors}
 
-Table~\ref{tab:factors} lists the factors we vary. The main sweep crosses the ladders with six method configurations (generation, generation with chain-of-thought, scoring, probe, LoRA and the feature probe) on the six tasks. The control configuration does the same for Pythia and OLMo 2 without chain-of-thought. The ablation configuration varies one factor at a time on Qwen2.5-Instruct at 1.5B, 7B and 14B, in three precisions, and on Qwen3 at 4B and 8B with thinking on and off, over twelve task configurations; the history-format, quantization and thinking comparisons all come from it.
+Table~\ref{tab:factors} lists the factors we vary. The main sweep crosses the ladders with seven method configurations (the free reply, generation, generation with chain-of-thought, scoring, probe, LoRA and the feature probe) on the seven tasks. The control configuration does the same for Pythia and OLMo 2 without chain-of-thought. Five ablation blocks vary one factor each: quantization on Qwen2.5-Instruct at 1.5B, 7B and 14B in three precisions; prompting and decoding on the same three models; thinking on Qwen3 at 1.7B, 4B, 8B and 14B with the mode on and off and three token budgets; the adaptation data budget and probe layer on Qwen2.5-Instruct at 0.5B, 1.5B and 7B; and task structure over thirteen task configurations, including the shifted loan variants.
 
 \begin{table}[t]
 \centering\small

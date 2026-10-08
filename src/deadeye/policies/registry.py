@@ -8,7 +8,7 @@ from deadeye.policies.base import Policy
 from deadeye.policies.baselines import UCB1, OraclePolicy, RandomPolicy
 from deadeye.policies.lora_sft import LoraSFTPolicy
 from deadeye.policies.probe import FeatureProbePolicy, ProbePolicy
-from deadeye.policies.prompting import PromptGeneratePolicy, PromptScorePolicy
+from deadeye.policies.prompting import PromptFreePolicy, PromptGeneratePolicy, PromptScorePolicy
 from deadeye.policies.prompts import PromptConfig
 
 #: name -> (class, needs_model)
@@ -17,6 +17,7 @@ POLICY_REGISTRY: dict[str, tuple[type[Policy], bool]] = {
     "oracle": (OraclePolicy, False),
     "ucb1": (UCB1, False),
     "feature_probe": (FeatureProbePolicy, False),
+    "prompt_free": (PromptFreePolicy, True),
     "prompt_generate": (PromptGeneratePolicy, True),
     "prompt_score": (PromptScorePolicy, True),
     "probe": (ProbePolicy, True),

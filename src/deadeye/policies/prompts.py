@@ -23,7 +23,7 @@ class PromptConfig:
     history_window: int = 0  # number of past (observation, action, reward) steps to show
     few_shot: int = 0  # number of oracle demonstrations (from training seeds) to prepend
     cot: bool = False  # ask for brief reasoning before the final action line
-    mode: str = "generate"  # "generate" | "score" (changes only the answer instruction)
+    mode: str = "generate"  # "generate" | "score" | "free" (changes only the answer instruction)
     extra_system: str = ""  # free text appended to the system prompt (for ablations)
     demos: list[dict[str, Any]] = field(default_factory=list)  # filled by the policy from training seeds
 
@@ -54,6 +54,8 @@ def answer_instruction(cfg: PromptConfig) -> str:
     what = "the letter" if cfg.action_format == "letter" else "the action name"
     if cfg.mode == "score":
         return f"Answer with only {what} of your chosen action."
+    if cfg.mode == "free":
+        return "What do you do? Answer in your own words."
     if cfg.cot:
         return (f"Think step by step in at most three short sentences, then end your reply with a final line of the "
                 f"form `Action: <{what.split()[-1]}>`.")
@@ -90,6 +92,8 @@ def build_messages(env: Environment, obs: Observation, history: list[HistoryStep
         label = next(k for k, v in lm.items() if v == demo["action"])
         if cfg.mode == "score":
             msgs.append(Message("assistant", label))
+        elif cfg.mode == "free":
+            msgs.append(Message("assistant", f"I would go with {label}."))
         elif cfg.cot:
             msgs.append(Message("assistant", f"{demo.get('rationale', 'Choosing the best available option.')}\nAction: {label}"))
         else:

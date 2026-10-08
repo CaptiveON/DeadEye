@@ -19,9 +19,9 @@ import pandas as pd
 from deadeye.metrics import bootstrap_ci, holm_correction, iqm, paired_permutation_test
 
 # Fixed method -> colour assignment (never cycled). Light-surface values of the validated palette.
-METHOD_ORDER = ["prompt_generate", "prompt_score", "probe", "lora_sft", "feature_probe", "ucb1"]
-METHOD_COLORS = {"prompt_generate": "#2a78d6", "prompt_score": "#eb6834", "probe": "#1baf7a", "lora_sft": "#eda100",
-                 "feature_probe": "#e87ba4", "ucb1": "#4a3aa7", "random": "#8a8984", "oracle": "#0b0b0b"}
+METHOD_ORDER = ["prompt_free", "prompt_generate", "prompt_score", "probe", "lora_sft", "feature_probe", "ucb1"]
+METHOD_COLORS = {"prompt_free": "#008300", "prompt_generate": "#2a78d6", "prompt_score": "#eb6834", "probe": "#1baf7a",
+                 "lora_sft": "#eda100", "feature_probe": "#e87ba4", "ucb1": "#4a3aa7", "random": "#8a8984", "oracle": "#0b0b0b"}
 FAMILY_MARKERS = ["o", "s", "^", "D", "v", "P", "X", "*"]
 TEXT_PRIMARY, TEXT_SECONDARY, GRID = "#0b0b0b", "#52514e", "#d9d8d3"
 
@@ -364,7 +364,7 @@ def fig_illegal(cells: pd.DataFrame, out: Path) -> Path | None:
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
-    mc = cells[(cells["model_key"] != "_baseline") & cells["params"].notna() & (cells["method"] == "prompt_generate")]
+    mc = cells[(cells["model_key"] != "_baseline") & cells["params"].notna() & (cells["method"].isin(["prompt_generate", "prompt_free"]))]
     if mc.empty:
         return None
     fig, ax = plt.subplots(figsize=(5.5, 3.4))

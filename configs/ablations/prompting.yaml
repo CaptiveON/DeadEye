@@ -11,6 +11,7 @@ envs:
   - {name: gridworld, params: {size: 6}}
   - {name: tictactoe, params: {opponent: random}, n_episodes: 300}
   - {name: blackjack, params: {hands_per_episode: 20}, n_episodes: 100}
+  - {name: support, params: {n_tickets: 20}}
 models:
   - {backend: hf, id: Qwen/Qwen2.5-1.5B-Instruct}
   - {backend: hf, id: Qwen/Qwen2.5-7B-Instruct}

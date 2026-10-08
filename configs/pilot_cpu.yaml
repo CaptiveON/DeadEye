@@ -13,6 +13,7 @@ envs:
   - {name: gridworld, params: {size: 5}}
   - {name: tictactoe, params: {opponent: random}}
   - {name: blackjack, params: {hands_per_episode: 10}, n_episodes: 20}
+  - {name: support, params: {n_tickets: 10}}
 models:
   - {backend: hf, id: HuggingFaceTB/SmolLM2-135M-Instruct, dtype: float32}
   - {backend: hf, id: HuggingFaceTB/SmolLM2-360M-Instruct, dtype: float32}
@@ -24,6 +25,7 @@ models:
   - {backend: hf, id: HuggingFaceTB/SmolLM2-1.7B-Instruct, dtype: float32}
   - {backend: hf, id: Qwen/Qwen3-1.7B, dtype: float32, chat_template_kwargs: {enable_thinking: false}}
 methods:
+  - {name: prompt_free, params: {max_new_tokens: 96}}      # the unconverted assistant: free reply, action extracted if any
   - {name: prompt_generate, params: {max_new_tokens: 16}}
   - {name: prompt_score}
   - {name: probe, params: {layer: mid, n_train_episodes: 40}}
