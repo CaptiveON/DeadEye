@@ -23,13 +23,13 @@ Companion files:
 
 | Hypothesis | Strongest prior evidence (supporting / complicating) |
 |---|---|
-| H1 scale, log-linear | Supporting: [kaplan2020scaling], [brown2020gpt3], [sinha2026illusion], [schmied2026greedy]. Complicating: [wei2022emergent], [schaeffer2023mirage], [hoffmann2022chinchilla] (tokens-per-parameter confound), [jiwatode2026spatial] |
-| H2 base vs instruct | [zhou2023lima], [lin2024urial], [wang2024myanswerc], [wang2024lookattext], [kadavath2022know], [zhou2023ifeval] |
-| H3 fine-tuned small vs 10x zero-shot, ID vs OOD | [dilkes2025reinforced], [nie2025evolve], [chu2025sft], [tajwar2025curious], [ross2011dagger], [szot2024llarp], [binz2025centaur] |
-| H4 logit scoring | [holtzman2021surface], [robinson2023mcsb], [zheng2024selectors], [tan2024twosome], [carta2023glam], [huang2022zeroshot], [sclar2024formatting], [tam2024speakfreely] |
-| H5 4-bit quantisation | [dettmers2023kbit], [kumar2025precision], [zheng2025qwen3quant], [liu2025quanthurts], [frantar2023gptq], [lin2024awq], [dettmers2023qlora] |
-| H6 exploration | [krishnamurthy2024explore], [schmied2026greedy], [harris2026explore], [nie2025evolve], [monea2025icrl], [binz2023cognitive], [laskin2023incontext] |
-| H7 thinking budget | [wei2022cot], [liu2025mindstep], [shojaee2025illusion], [cuadron2025overthinking], [gema2025inverse], [li2025smallstruggle], [snell2025ttc], [jiwatode2026spatial] |
+| H1 scale, log-linear | Supporting: (Kaplan et al., 2020), (Brown et al., 2020), (Sinha et al., 2026), (Schmied et al., 2026). Complicating: (Wei, Tay, Bommasani, Raffel, Zoph, Borgeaud, Yogatama, Bosma, Zhou, Metzler, Chi, Hashimoto, Vinyals, Liang, Dean and Fedus, 2022), (Schaeffer et al., 2023), (Hoffmann et al., 2022) (tokens-per-parameter confound), (Jiwatode et al., 2026) |
+| H2 base vs instruct | (Zhou, Liu, Xu, Iyer, Sun, Mao, Ma, Efrat, Yu, Yu, Zhang, Ghosh, Lewis, Zettlemoyer and Levy, 2023), (Lin, Ravichander, Lu, Dziri, Sclar, Chandu, Bhagavatula and Choi, 2024), (Wang, Ma, Hu, Weber-Genzel, Röttger, Kreuter, Hovy and Plank, 2024), (Wang, Hu, Ma, Röttger and Plank, 2024), (Kadavath et al., 2022), (Zhou, Lu, Mishra, Brahma, Basu, Luan, Zhou and Hou, 2023) |
+| H3 fine-tuned small vs 10x zero-shot, ID vs OOD | (Dilkes et al., 2025), (Nie et al., 2025), (Chu et al., 2025), (Tajwar et al., 2025), (Ross et al., 2011), (Szot et al., 2024), (Binz et al., 2025) |
+| H4 logit scoring | (Holtzman et al., 2021), (Robinson and Wingate, 2023), (Zheng et al., 2024), (Tan et al., 2024), (Carta et al., 2023), (Huang et al., 2022), (Sclar et al., 2024), (Tam et al., 2024) |
+| H5 4-bit quantisation | (Dettmers and Zettlemoyer, 2023), (Kumar et al., 2025), (Zheng et al., 2026), (Liu, Sun, Zhang, Bai, Yu, Yu, Yuan and Hou, 2025), (Frantar et al., 2023), (Lin, Tang, Tang, Yang, Chen, Wang, Xiao, Dang, Gan and Han, 2024), (Dettmers et al., 2023) |
+| H6 exploration | (Krishnamurthy et al., 2024), (Schmied et al., 2026), (Harris and Slivkins, 2026), (Nie et al., 2025), (Monea et al., 2025), (Binz and Schulz, 2023), (Laskin et al., 2023) |
+| H7 thinking budget | (Wei, Wang, Schuurmans, Bosma, Ichter, Xia, Chi, Le and Zhou, 2022), (Liu, Geng, Wu, Sucholutsky, Lombrozo and Griffiths, 2025), (Shojaee et al., 2025), (Cuadron et al., 2025), (Gema et al., 2025), (Li et al., 2025), (Snell et al., 2025), (Jiwatode et al., 2026) |
 
 ---
 
@@ -37,13 +37,13 @@ Companion files:
 
 Language models are now routinely deployed as decision-makers: agents that pick actions in games, tools and workflows. Most evidence about how well they do comes from three kinds of study:
 
-- benchmark suites dominated by frontier API models [paglieri2025balrog; ruoss2025lmact; liu2024agentbench];
-- single-family studies with two or three sizes [schmied2026greedy; jiwatode2026spatial];
-- methods papers that convert one model into a policy in one way: prompting [yao2023react], action-likelihood scoring [carta2023glam; tan2024twosome], probing [orgad2025know], behaviour cloning [chu2025sft] or RL [wang2025ragen; liu2026spiral].
+- benchmark suites dominated by frontier API models (Paglieri et al., 2025; Ruoss et al., 2025; Liu et al., 2024);
+- single-family studies with two or three sizes (Schmied et al., 2026; Jiwatode et al., 2026);
+- methods papers that convert one model into a policy in one way: prompting (Yao et al., 2023), action-likelihood scoring (Carta et al., 2023; Tan et al., 2024), probing (Orgad et al., 2025), behaviour cloning (Chu et al., 2025) or RL (Wang et al., 2025; Liu et al., 2026).
 
-Classical scaling work tells us loss falls smoothly with parameters [kaplan2020scaling; hoffmann2022chinchilla]. It does not tell us whether *decision quality* does, or whether apparent jumps are artefacts of the metric [wei2022emergent; schaeffer2023mirage]. Meanwhile, small open-weight models (sub-1B to ~14B) are promoted for agentic use on cost and latency grounds [belcak2025slm]. Recent work shows they can be greedy explorers [schmied2026greedy; krishnamurthy2024explore], brittle to output format [sclar2024formatting; wang2024myanswerc] and sensitive to quantisation [kumar2025precision]. When they "think", they can be helped or harmed depending on task and size [li2025smallstruggle; liu2025mindstep; shojaee2025illusion].
+Classical scaling work tells us loss falls smoothly with parameters (Kaplan et al., 2020; Hoffmann et al., 2022). It does not tell us whether *decision quality* does, or whether apparent jumps are artefacts of the metric (Wei, Tay, Bommasani, Raffel, Zoph, Borgeaud, Yogatama, Bosma, Zhou, Metzler, Chi, Hashimoto, Vinyals, Liang, Dean and Fedus, 2022; Schaeffer et al., 2023). Meanwhile, small open-weight models (sub-1B to ~14B) are promoted for agentic use on cost and latency grounds (Belcak et al., 2025). Recent work shows they can be greedy explorers (Schmied et al., 2026; Krishnamurthy et al., 2024), brittle to output format (Sclar et al., 2024; Wang, Ma, Hu, Weber-Genzel, Röttger, Kreuter, Hovy and Plank, 2024) and sensitive to quantisation (Kumar et al., 2025). When they "think", they can be helped or harmed depending on task and size (Li et al., 2025; Liu, Geng, Wu, Sucholutsky, Lombrozo and Griffiths, 2025; Shojaee et al., 2025).
 
-DeadEye fills the space between these literatures. It uses same-recipe model ladders, several conversion methods (prompt-generate, prompt-score, probe, LoRA-SFT, optionally DPO/GRPO) and procedurally generated tasks with known oracles. Scores are normalised between random and oracle policies and reported with RL-grade statistics [agarwal2021precipice].
+DeadEye fills the space between these literatures. It uses same-recipe model ladders, several conversion methods (prompt-generate, prompt-score, probe, LoRA-SFT, optionally DPO/GRPO) and procedurally generated tasks with known oracles. Scores are normalised between random and oracle policies and reported with RL-grade statistics (Agarwal et al., 2021).
 
 ---
 
@@ -83,7 +83,7 @@ DeadEye fills the space between these literatures. It uses same-recipe model lad
 
 - **Guertler, Cheng, Yu et al. (2025), arXiv** `[guertler2025textarena]`
   - TextArena is an open-source collection of 57+ competitive text games (single-, two- and multi-player) with online TrueSkill ratings against humans and models, designed to be extensible for training as well as evaluation.
-  - **Bearing:** this provides off-the-shelf adversarial environments and opponents for our tic-tac-toe task. It is also the substrate used for RL training in SPIRAL [liu2026spiral], useful for the DPO/GRPO stretch conversion.
+  - **Bearing:** this provides off-the-shelf adversarial environments and opponents for our tic-tac-toe task. It is also the substrate used for RL training in SPIRAL (Liu et al., 2026), useful for the DPO/GRPO stretch conversion.
 
 - **Huang, Abbeel, Pathak & Mordatch (2022), ICML** `[huang2022zeroshot]`
   - Large, appropriately prompted LMs can decompose high-level tasks into plausible step-by-step plans in VirtualHome. However, the raw generations are often not admissible actions.
@@ -96,7 +96,7 @@ DeadEye fills the space between these literatures. It uses same-recipe model lad
 
 - **Shinn, Cassano, Berman et al. (2023), NeurIPS** `[shinn2023reflexion]`
   - Reflexion improves agents across trials by storing verbal self-reflections on feedback in an episodic memory, without weight updates. It gave gains on sequential decision-making (ALFWorld), reasoning and coding.
-  - **Bearing:** this is a scaffold that converts reward history into usable text, analogous to the history summarisation that rescued exploration in [krishnamurthy2024explore] (H6). It is a candidate "scaffolded" condition for bandits.
+  - **Bearing:** this is a scaffold that converts reward history into usable text, analogous to the history summarisation that rescued exploration in (Krishnamurthy et al., 2024) (H6). It is a candidate "scaffolded" condition for bandits.
 
 - **Jiwatode, Fuchs, Schmöcker et al. (2026), arXiv (for IEEE CoG 2026)** `[jiwatode2026spatial]`
   - This study crosses Qwen3 model scale, reasoning mode (thinking on/off) and planning horizon on a GVGAI benchmark of three spatial-navigation games with five difficulty levels.
@@ -158,7 +158,7 @@ DeadEye fills the space between these literatures. It uses same-recipe model lad
 
 - **Hoffmann, Borgeaud, Mensch et al. (2022), NeurIPS** `[hoffmann2022chinchilla]`
   - From 400+ training runs, the authors concluded that parameters and training tokens should scale roughly equally. Chinchilla (70B, ~4x more data) beat the 280B Gopher.
-  - **Bearing:** this is a key confound for H1. Within modern ladders, small rungs are trained far beyond compute-optimal token counts (SmolLM2-1.7B on ~11T tokens [allal2025smollm2]), so "parameters" partly proxies for tokens-per-parameter. That also matters for H5 via [kumar2025precision].
+  - **Bearing:** this is a key confound for H1. Within modern ladders, small rungs are trained far beyond compute-optimal token counts (SmolLM2-1.7B on ~11T tokens (Ben Allal et al., 2025)), so "parameters" partly proxies for tokens-per-parameter. That also matters for H5 via (Kumar et al., 2025).
 
 - **Wei, Tay, Bommasani et al. (2022), TMLR** `[wei2022emergent]`
   - The authors catalogued "emergent" abilities that are near-chance in small models and appear abruptly in large ones, so they cannot be extrapolated from small-model trends.
@@ -233,7 +233,7 @@ DeadEye fills the space between these literatures. It uses same-recipe model lad
 
 - **Alain & Bengio (2016), arXiv** `[alain2016probes]`
   - Linear classifier probes are trained post hoc on frozen intermediate layers without affecting the model. In the vision networks studied, linear separability increased monotonically with depth.
-  - **Bearing:** this defines our probe conversion: a linear head on frozen states, trained per layer. Whether separability peaks before the last layer in LLMs is addressed by [skean2025layer].
+  - **Bearing:** this defines our probe conversion: a linear head on frozen states, trained per layer. Whether separability peaks before the last layer in LLMs is addressed by (Skean et al., 2025).
 
 - **Belinkov (2022), Computational Linguistics** `[belinkov2022probing]`
   - This review covers probing classifiers and their pitfalls: probe expressivity (linear vs MLP), the need for control tasks and baselines, and the gap between decodability and use by the model.
@@ -477,7 +477,7 @@ Per-size details, repository ids and licences are in `docs/model_ladders.md`; th
 
 - **Ben Allal, Lozhkov, Bakouch et al. (2025), arXiv** `[allal2025smollm2]`
   - SmolLM2 provides 135M, 360M and 1.7B models (base and instruct). The 1.7B was trained on ~11T tokens with multi-stage data mixing and new datasets (FineMath, Stack-Edu, SmolTalk), and outperformed Qwen2.5-1.5B and Llama-3.2-1B.
-  - **Bearing:** this supplies sub-1B rungs needed for H5's "costly below 1B" and the extreme low end of H1, with heavy over-training relevant to [kumar2025precision].
+  - **Bearing:** this supplies sub-1B rungs needed for H5's "costly below 1B" and the extreme low end of H1, with heavy over-training relevant to (Kumar et al., 2025).
 
 - **Hugging Face (2025), blog** `[hf2025smollm3]`
   - SmolLM3 is a fully open 3B model trained on ~11T tokens, with dual-mode think/no_think reasoning, six languages and 128K context via YaRN (trained at 64K).
@@ -498,7 +498,7 @@ Per-size details, repository ids and licences are in `docs/model_ladders.md`; th
 
 - **Grattafiori, Dubey et al. (2024), arXiv** `[grattafiori2024llama3]`
   - The Llama 3 herd report covers dense 8B, 70B and 405B base and instruct models with 128K context.
-  - **Bearing:** Llama 3.x sizes come from *different* releases (3.1: 8B/70B/405B; 3.2: 1B/3B; 3.3: 70B instruct only; see [meta2025llamamodels]), so Llama is not a single-recipe ladder. Use it as a cross-family check rather than a primary H1 ladder.
+  - **Bearing:** Llama 3.x sizes come from *different* releases (3.1: 8B/70B/405B; 3.2: 1B/3B; 3.3: 70B instruct only; see (Meta, 2025)), so Llama is not a single-recipe ladder. Use it as a cross-family check rather than a primary H1 ladder.
 
 - **Meta (2025), GitHub** `[meta2025llamamodels]`
   - The release table gives dates and context lengths for Llama 3.1 (Jul 2024), 3.2 (Sep 2024), 3.3 (Dec 2024) and Llama 4 (Apr 2025). Llama 4 comprises Scout-17B-16E (10M context) and Maverick-17B-128E (1M context) MoE models.
@@ -547,53 +547,53 @@ Per-size details, repository ids and licences are in `docs/model_ladders.md`; th
 The following assessment tries to be honest: several hypotheses already have substantial partial answers.
 
 1. **No controlled ladder × conversion-method × task-structure study exists.**
-   - Agent benchmarks mostly evaluate frontier or heterogeneous model sets [paglieri2025balrog; ruoss2025lmact; liu2024agentbench; duan2024gtbench].
-   - Scale-resolved studies use one family and two or three sizes [schmied2026greedy; jiwatode2026spatial] or one task type [monea2025icrl].
-   - Conversion-method papers use one method at one or two sizes [carta2023glam; tan2024twosome; chu2025sft; dilkes2025reinforced].
-   - DeadEye's crossed design (≥3 same-recipe ladders × 4-5 conversion methods × 6 task structures) and its random-to-oracle normalisation with IQM and bootstrap CIs [agarwal2021precipice] have no direct precedent.
+   - Agent benchmarks mostly evaluate frontier or heterogeneous model sets (Paglieri et al., 2025; Ruoss et al., 2025; Liu et al., 2024; Duan et al., 2024).
+   - Scale-resolved studies use one family and two or three sizes (Schmied et al., 2026; Jiwatode et al., 2026) or one task type (Monea et al., 2025).
+   - Conversion-method papers use one method at one or two sizes (Carta et al., 2023; Tan et al., 2024; Chu et al., 2025; Dilkes et al., 2025).
+   - DeadEye's crossed design (≥3 same-recipe ladders × 4-5 conversion methods × 6 task structures) and its random-to-oracle normalisation with IQM and bootstrap CIs (Agarwal et al., 2021) have no direct precedent.
    - *Partial prior answers:* GLAM and TWOSOME already show scoring-based policies work; Chu et al. already show SFT-vs-RL generalisation differences.
 
 2. **H1 (log-linear, task-dependent slope) is plausible but untested in this form.**
-   - Supporting evidence: long-horizon execution scales with size without diminishing returns [sinha2026illusion], frequency bias fades from 2B to 27B [schmied2026greedy], and multi-size bandit ICL [monea2025icrl].
-   - Nobody has fit slopes per task structure with a principled x-axis. That axis should use non-embedding parameters [kaplan2020scaling], handle MoE active vs total, and control for tokens-per-parameter [hoffmann2022chinchilla].
-   - Metrics must be continuous to avoid mirage effects [schaeffer2023mirage].
+   - Supporting evidence: long-horizon execution scales with size without diminishing returns (Sinha et al., 2026), frequency bias fades from 2B to 27B (Schmied et al., 2026), and multi-size bandit ICL (Monea et al., 2025).
+   - Nobody has fit slopes per task structure with a principled x-axis. That axis should use non-embedding parameters (Kaplan et al., 2020), handle MoE active vs total, and control for tokens-per-parameter (Hoffmann et al., 2022).
+   - Metrics must be continuous to avoid mirage effects (Schaeffer et al., 2023).
    - *Honest caveat:* our tasks are small and synthetic, so slopes may not transfer to open-ended agentic work.
 
 3. **H2 (instruct > base under prompting, gap vanishes under probe/LoRA) has strong priors in both directions.**
-   - LIMA and URIAL suggest alignment is mostly style [zhou2023lima; lin2024urial]. That predicts the second clause but also threatens the first (base + few-shot may suffice).
-   - First-token/text mismatches make scoring-based comparisons of instruct models tricky [wang2024myanswerc; wang2024lookattext].
+   - LIMA and URIAL suggest alignment is mostly style (Zhou, Liu, Xu, Iyer, Sun, Mao, Ma, Efrat, Yu, Yu, Zhang, Ghosh, Lewis, Zettlemoyer and Levy, 2023; Lin, Ravichander, Lu, Dziri, Sclar, Chandu, Bhagavatula and Choi, 2024). That predicts the second clause but also threatens the first (base + few-shot may suffice).
+   - First-token/text mismatches make scoring-based comparisons of instruct models tricky (Wang, Ma, Hu, Weber-Genzel, Röttger, Kreuter, Hovy and Plank, 2024; Wang, Hu, Ma, Röttger and Plank, 2024).
    - No one has tested base vs instruct under probe and LoRA on decision tasks across a ladder, and Qwen3's missing large base checkpoints constrain the design.
 
 4. **H3 (fine-tuned small ≈ 10x larger zero-shot in-distribution, not OOD) is half-answered.**
-   - The in-distribution half is supported for bandits [nie2025evolve] and Frozen Lake (3B > 72B after RL) [dilkes2025reinforced].
-   - The OOD half is supported for SFT [chu2025sft; ross2011dagger] but contradicted for diverse-task fine-tuning [tajwar2025curious], LLM-initialised RL policies [szot2024llarp] and cognitive-task fine-tuning [binz2025centaur].
+   - The in-distribution half is supported for bandits (Nie et al., 2025) and Frozen Lake (3B > 72B after RL) (Dilkes et al., 2025).
+   - The OOD half is supported for SFT (Chu et al., 2025; Ross et al., 2011) but contradicted for diverse-task fine-tuning (Tajwar et al., 2025), LLM-initialised RL policies (Szot et al., 2024) and cognitive-task fine-tuning (Binz et al., 2025).
    - DeadEye's contribution is *typed* OOD splits that procedural generation makes possible: parameter shift (grid size, payoff scale), surface shift (renamed features or actions), opponent shift. These are run at matched 10x size ratios across families.
-   - *Design note:* for bandits the clairvoyant oracle never explores, so behaviour cloning on oracle trajectories cannot teach exploration [laskin2023incontext]. The SFT teacher should be UCB/Thompson [auer2002ucb], while normalisation still uses the oracle.
+   - *Design note:* for bandits the clairvoyant oracle never explores, so behaviour cloning on oracle trajectories cannot teach exploration (Laskin et al., 2023). The SFT teacher should be UCB/Thompson (Auer et al., 2002), while normalisation still uses the oracle.
 
 5. **H4 (logit scoring removes format failures) is well motivated but unmeasured for sequential decisions.**
-   - Prior work is on QA multiple choice [holtzman2021surface; robinson2023mcsb; zheng2024selectors; sclar2024formatting] or uses scoring without comparing to generation across scale [carta2023glam; tan2024twosome].
+   - Prior work is on QA multiple choice (Holtzman et al., 2021; Robinson and Wingate, 2023; Zheng et al., 2024; Sclar et al., 2024) or uses scoring without comparing to generation across scale (Carta et al., 2023; Tan et al., 2024).
    - DeadEye can quantify format-failure rates against scale and test whether scoring closes the gap. It should also check whether scoring introduces its own biases (option-ID priors, action-length effects, surface-form competition).
-   - *Expected nuance:* scoring helps most for base and small models [wang2024lookattext].
+   - *Expected nuance:* scoring helps most for base and small models (Wang, Hu, Ma, Röttger and Plank, 2024).
 
 6. **H5 (4-bit quantisation free above ~3B, costly below 1B) has a mechanism but no decision-task evidence.**
-   - Quantisation studies measure perplexity, MMLU or maths [dettmers2023kbit; zheng2025qwen3quant; liu2025quanthurts].
-   - Precision scaling laws predict over-trained small models suffer most [kumar2025precision].
+   - Quantisation studies measure perplexity, MMLU or maths (Dettmers and Zettlemoyer, 2023; Zheng et al., 2026; Liu, Sun, Zhang, Bai, Yu, Yu, Yuan and Hou, 2025).
+   - Precision scaling laws predict over-trained small models suffer most (Kumar et al., 2025).
    - Evidence on multi-step decision quality vs scale under 4-bit (GPTQ/AWQ/NF4), including the interaction with thinking mode, is missing.
 
 7. **H6 (exploration poor without scaffolding) is largely established; DeadEye's value is resolution and robustness.**
-   - [krishnamurthy2024explore], [schmied2026greedy], [harris2026explore] and [binz2023cognitive] already show greedy or under-exploring LLMs, and [nie2025evolve] shows scaffolds and distillation help.
-   - What is new is the full scale curve across several families, whether probes or LoRA change it, and separating exploration from exploitation failures [harris2026explore] and from option-ID or recency artefacts [zheng2024selectors; zhao2021calibrate].
+   - (Krishnamurthy et al., 2024), (Schmied et al., 2026), (Harris and Slivkins, 2026) and (Binz and Schulz, 2023) already show greedy or under-exploring LLMs, and (Nie et al., 2025) shows scaffolds and distillation help.
+   - What is new is the full scale curve across several families, whether probes or LoRA change it, and separating exploration from exploitation failures (Harris and Slivkins, 2026) and from option-ID or recency artefacts (Zheng et al., 2024; Zhao et al., 2021).
    - *Honest framing:* treat H6 as a replication and extension, not a discovery.
 
 8. **H7 (thinking helps planning, can hurt small models, hurts efficiency) has fragmented support.**
-   - The claim that reasoning can hurt and is complexity-dependent is supported by [liu2025mindstep], [shojaee2025illusion], [gema2025inverse], [cuadron2025overthinking] and [li2025smallstruggle]. The closest scale × thinking × game study is [jiwatode2026spatial].
+   - The claim that reasoning can hurt and is complexity-dependent is supported by (Liu, Geng, Wu, Sucholutsky, Lombrozo and Griffiths, 2025), (Shojaee et al., 2025), (Gema et al., 2025), (Cuadron et al., 2025) and (Li et al., 2025). The closest scale × thinking × game study is (Jiwatode et al., 2026).
    - Thinking toggles inside the same weights (Qwen3, SmolLM3, Gemma 4, gpt-oss effort levels, Olmo 3 Think vs Instruct) make a cleaner causal test possible than earlier cross-model comparisons.
    - The *latency-normalised* efficiency analysis across ≥5 sizes and several task structures is new.
 
 9. **Methodological gaps we address.**
    - RL-grade statistics (IQM, stratified bootstrap, performance profiles) are rare in LLM-agent papers.
-   - Prompt-format ranges [sclar2024formatting] are rarely reported.
-   - Parse/format failures are rarely separated from wrong-but-legal decisions [huang2022zeroshot].
+   - Prompt-format ranges (Sclar et al., 2024) are rarely reported.
+   - Parse/format failures are rarely separated from wrong-but-legal decisions (Huang et al., 2022).
    - Contamination of classic games is rarely addressed. Blackjack basic strategy and tic-tac-toe are heavily documented online, so procedural rule variants (non-standard payouts, board sizes) should test reasoning rather than recall.
 
 ---
@@ -659,19 +659,19 @@ These were found or suggested but could not be fully verified. They are **not** 
 
 **Directly on our hypotheses**
 
-- **[schmied2026greedy]** (ICLR 2026): greediness, frequency bias and the knowing-doing gap in 2B-27B models; RL fine-tuning on chain-of-thought fixes part of it. *H1, H6, H7, GRPO stretch.*
-- **[jiwatode2026spatial]** (CoG 2026): Qwen3 scale × thinking mode × planning horizon on spatial games. *H1, H7; closest design to ours.*
-- **[sinha2026illusion]** (ICLR 2026): execution horizon keeps scaling with model size. *H1 horizon-dependent slopes.*
-- **[harris2026explore]** (UAI 2026): exploitation, not only exploration, fails; reasoning models help but are slow. *H6, H7.*
-- **[dilkes2025reinforced]**: MS-GRPO makes a 3B model beat a 72B one on Frozen Lake. *H3 in-distribution.*
-- **[liu2026spiral]** (ICLR 2026) and **[wang2025ragen]**: multi-turn RL for small LLM agents on games and bandits; stability pitfalls. *GRPO stretch, H6.*
-- **[tajwar2025curious]**: diverse-task fine-tuning transfers exploration to unseen tasks. *H3 OOD counter-evidence.*
-- **[monea2025icrl]** (COLM 2025): in-context bandit RL from 500M to 70B. *H1, H6.*
-- **[chu2025sft]** (ICML 2025): SFT memorises, RL generalises. *H3.*
-- **[kumar2025precision]** (ICLR 2025), **[zheng2025qwen3quant]**, **[liu2025quanthurts]**: quantisation hurts over-trained and small models, and reasoning, more. *H5, H5 × H7.*
-- **[li2025smallstruggle]**, **[gema2025inverse]**, **[shojaee2025illusion]**, **[liu2025mindstep]**, **[cuadron2025overthinking]**: when thinking hurts. *H7.*
-- **[snell2025ttc]**: test-time compute vs parameters. *H7 efficiency framing.*
-- **[belcak2025slm]**: the SLM-for-agents position paper. *Motivation.*
+- **(Schmied et al., 2026)** (ICLR 2026): greediness, frequency bias and the knowing-doing gap in 2B-27B models; RL fine-tuning on chain-of-thought fixes part of it. *H1, H6, H7, GRPO stretch.*
+- **(Jiwatode et al., 2026)** (CoG 2026): Qwen3 scale × thinking mode × planning horizon on spatial games. *H1, H7; closest design to ours.*
+- **(Sinha et al., 2026)** (ICLR 2026): execution horizon keeps scaling with model size. *H1 horizon-dependent slopes.*
+- **(Harris and Slivkins, 2026)** (UAI 2026): exploitation, not only exploration, fails; reasoning models help but are slow. *H6, H7.*
+- **(Dilkes et al., 2025)**: MS-GRPO makes a 3B model beat a 72B one on Frozen Lake. *H3 in-distribution.*
+- **(Liu et al., 2026)** (ICLR 2026) and **(Wang et al., 2025)**: multi-turn RL for small LLM agents on games and bandits; stability pitfalls. *GRPO stretch, H6.*
+- **(Tajwar et al., 2025)**: diverse-task fine-tuning transfers exploration to unseen tasks. *H3 OOD counter-evidence.*
+- **(Monea et al., 2025)** (COLM 2025): in-context bandit RL from 500M to 70B. *H1, H6.*
+- **(Chu et al., 2025)** (ICML 2025): SFT memorises, RL generalises. *H3.*
+- **(Kumar et al., 2025)** (ICLR 2025), **(Zheng et al., 2026)**, **(Liu, Sun, Zhang, Bai, Yu, Yu, Yuan and Hou, 2025)**: quantisation hurts over-trained and small models, and reasoning, more. *H5, H5 × H7.*
+- **(Li et al., 2025)**, **(Gema et al., 2025)**, **(Shojaee et al., 2025)**, **(Liu, Geng, Wu, Sucholutsky, Lombrozo and Griffiths, 2025)**, **(Cuadron et al., 2025)**: when thinking hurts. *H7.*
+- **(Snell et al., 2025)**: test-time compute vs parameters. *H7 efficiency framing.*
+- **(Belcak et al., 2025)**: the SLM-for-agents position paper. *Motivation.*
 
 **Model releases since mid-2025 relevant to ladder choice** (details in `model_ladders.md`)
 
@@ -685,3 +685,219 @@ These were found or suggested but could not be fully verified. They are **not** 
 - gpt-oss (Aug 2025).
 
 **Unverified but worth tracking (Section 4):** the emotion-sensitive SLM-agent study (arXiv:2604.06562) and the TinyLLM edge-agent benchmark (arXiv:2511.22138).
+
+## Reference list
+
+*Generated mechanically from `paper/refs.bib` after the 2026-10-08 audit (see `docs/references_audit.md`). In-text citations above follow the labels that `agsm.bst` with natbib produces for the paper.*
+
+Abdin, M., Aneja, J., Behl, H., Bubeck, S., Eldan, R., Gunasekar, S., Harrison, M., Hewett, R. J., Javaheripi, M., Kauffmann, P., Lee, J. R., Lee, Y. T., Li, Y., Liu, W., Mendes, C. C. T., Nguyen, A., Price, E., de Rosa, G., Saarikivi, O., Salim, A., Shah, S., Wang, X., Ward, R., Wu, Y., Yu, D., Zhang, C. and Zhang, Y. (2024) 'Phi-4 technical report', *arXiv preprint* arXiv:2412.08905. Available at: <https://arxiv.org/abs/2412.08905>.
+
+Abdin, M., Agarwal, S., Awadallah, A., Balachandran, V., Behl, H., Chen, L., de Rosa, G., Gunasekar, S., Javaheripi, M., Joshi, N., Kauffmann, P., Lara, Y., Mendes, C. C. T., Mitra, A., Nushi, B., Papailiopoulos, D., Saarikivi, O., Shah, S., Shrivastava, V., Vineet, V., Wu, Y., Yousefi, S. and Zheng, G. (2025) 'Phi-4-reasoning technical report', *arXiv preprint* arXiv:2504.21318. Available at: <https://arxiv.org/abs/2504.21318>.
+
+Agarwal, R., Schwarzer, M., Castro, P. S., Courville, A. and Bellemare, M. G. (2021) 'Deep reinforcement learning at the edge of the statistical precipice', in *Advances in Neural Information Processing Systems 34 (NeurIPS 2021)*. Curran Associates, Inc. Also available as arXiv:[2108.13264](https://arxiv.org/abs/2108.13264).
+
+Alain, G. and Bengio, Y. (2017) 'Understanding intermediate layers using linear classifier probes', in *5th International Conference on Learning Representations (ICLR 2017), Workshop Track*. OpenReview.net. Also available as arXiv:[1610.01644](https://arxiv.org/abs/1610.01644).
+
+Auer, P., Cesa-Bianchi, N. and Fischer, P. (2002) 'Finite-time analysis of the multiarmed bandit problem', *Machine Learning*, 47, pp. 235–256. doi: [10.1023/A:1013689704352](https://doi.org/10.1023/A:1013689704352).
+
+Bakouch, E., Ben Allal, L., Lozhkov, A., Tazi, N., Tunstall, L., Patiño, C. M., Beeching, E., Roucher, A., Reedi, A. J., Gallouédec, Q., Rasul, K., Habib, N., Fourrier, C., Kydlíček, H., Penedo, G., Larcher, H., Morlon, M., Srivastav, V., Lochner, J., Nguyen, X.-S., Raffel, C., von Werra, L. and Wolf, T. (2025) 'SmolLM3: smol, multilingual, long-context reasoner', Hugging Face blog (official release write-up of SmolLM3). Available at: <https://huggingface.co/blog/smollm3> (Accessed: 8 October 2026).
+
+Belcak, P., Heinrich, G., Diao, S., Fu, Y., Dong, X., Muralidharan, S., Lin, Y. C. and Molchanov, P. (2025) 'Small language models are the future of agentic AI', *arXiv preprint* arXiv:2506.02153. Available at: <https://arxiv.org/abs/2506.02153>.
+
+Belinkov, Y. (2022) 'Probing classifiers: Promises, shortcomings, and advances', *Computational Linguistics*, 48(1), pp. 207–219. doi: [10.1162/coli\_a\_00422](https://doi.org/10.1162/coli_a_00422).
+
+Ben Allal, L., Lozhkov, A., Bakouch, E., Martín Blázquez, G., Penedo, G., Tunstall, L., Marafioti, A., Kydlíček, H., Piqueres Lajarín, A., Srivastav, V., Lochner, J., Fahlgren, C., Nguyen, X.-S., Fourrier, C., Burtenshaw, B., Larcher, H., Zhao, H., Zakka, C., Morlon, M., Raffel, C., von Werra, L. and Wolf, T. (2025) 'SmolLM2: When smol goes big – data-centric training of a small language model', *arXiv preprint* arXiv:2502.02737. Available at: <https://arxiv.org/abs/2502.02737>.
+
+Biderman, S., Schoelkopf, H., Anthony, Q. G., Bradley, H., O'Brien, K., Hallahan, E., Khan, M. A., Purohit, S., Prashanth, U. S., Raff, E., Skowron, A., Sutawika, L. and van der Wal, O. (2023) 'Pythia: A suite for analyzing large language models across training and scaling', in *Proceedings of the 40th International Conference on Machine Learning*, Proceedings of Machine Learning Research, vol. 202, pp. 2397–2430. PMLR. Also available as arXiv:[2304.01373](https://arxiv.org/abs/2304.01373).
+
+Biderman, S., Schoelkopf, H., Sutawika, L., Gao, L., Tow, J., Abbasi, B., Aji, A. F., Ammanamanchi, P. S., Black, S., Clive, J., DiPofi, A., Etxaniz, J., Fattori, B., Forde, J. Z., Foster, C., Hsu, J., Jaiswal, M., Lee, W. Y., Li, H., Lovering, C., Muennighoff, N., Pavlick, E., Phang, J., Skowron, A., Tan, S., Tang, X., Wang, K. A., Winata, G. I., Yvon, F. and Zou, A. (2024) 'Lessons from the trenches on reproducible evaluation of language models', *arXiv preprint* arXiv:2405.14782. Available at: <https://arxiv.org/abs/2405.14782>.
+
+Binz, M. and Schulz, E. (2023) 'Using cognitive psychology to understand GPT-3', *Proceedings of the National Academy of Sciences*, 120(6), e2218523120. doi: [10.1073/pnas.2218523120](https://doi.org/10.1073/pnas.2218523120).
+
+Binz, M., Akata, E., Bethge, M. et al. (2025) 'A foundation model to predict and capture human cognition', *Nature*, 644(8078), pp. 1002–1009. Preprint version: arXiv:2410.20268, “Centaur: a foundation model of human cognition”. doi: [10.1038/s41586-025-09215-4](https://doi.org/10.1038/s41586-025-09215-4).
+
+Brown, T. B., Mann, B., Ryder, N., Subbiah, M., Kaplan, J., Dhariwal, P., Neelakantan, A., Shyam, P., Sastry, G., Askell, A., Agarwal, S., Herbert-Voss, A., Krueger, G., Henighan, T., Child, R., Ramesh, A., Ziegler, D. M., Wu, J., Winter, C., Hesse, C., Chen, M., Sigler, E., Litwin, M., Gray, S., Chess, B., Clark, J., Berner, C., McCandlish, S., Radford, A., Sutskever, I. and Amodei, D. (2020) 'Language models are few-shot learners', in *Advances in Neural Information Processing Systems 33 (NeurIPS 2020)*. Curran Associates, Inc. Also available as arXiv:[2005.14165](https://arxiv.org/abs/2005.14165).
+
+Carta, T., Romac, C., Wolf, T., Lamprier, S., Sigaud, O. and Oudeyer, P.-Y. (2023) 'Grounding large language models in interactive environments with online reinforcement learning', in *Proceedings of the 40th International Conference on Machine Learning*, Proceedings of Machine Learning Research, vol. 202, pp. 3676–3713. PMLR. Also available as arXiv:[2302.02662](https://arxiv.org/abs/2302.02662).
+
+Chen, L., Lu, K., Rajeswaran, A., Lee, K., Grover, A., Laskin, M., Abbeel, P., Srinivas, A. and Mordatch, I. (2021) 'Decision Transformer: Reinforcement learning via sequence modeling', in *Advances in Neural Information Processing Systems 34 (NeurIPS 2021)*. Curran Associates, Inc. Also available as arXiv:[2106.01345](https://arxiv.org/abs/2106.01345).
+
+Chu, T., Zhai, Y., Yang, J., Tong, S., Xie, S., Schuurmans, D., Le, Q. V., Levine, S. and Ma, Y. (2025) 'SFT memorizes, RL generalizes: A comparative study of foundation model post-training', in *Proceedings of the 42nd International Conference on Machine Learning*, Proceedings of Machine Learning Research, vol. 267, pp. 10818–10838. PMLR. Also available as arXiv:[2501.17161](https://arxiv.org/abs/2501.17161).
+
+Costarelli, A., Allen, M., Hauksson, R., Sodunke, G., Hariharan, S., Cheng, C., Li, W., Clymer, J. and Yadav, A. (2024) 'GameBench: Evaluating strategic reasoning abilities of LLM agents', in *Language Gamification Workshop at the 38th Conference on Neural Information Processing Systems (NeurIPS 2024)*. Non-archival workshop paper; also available as arXiv:2406.06613.
+
+Cuadron, A., Li, D., Ma, W., Wang, X., Wang, Y., Zhuang, S., Liu, S., Schroeder, L. G., Xia, T., Mao, H., Thumiger, N., Desai, A., Stoica, I., Klimovic, A., Neubig, G. and Gonzalez, J. E. (2025) 'The danger of overthinking: Examining the reasoning-action dilemma in agentic tasks', *arXiv preprint* arXiv:2502.08235. Available at: <https://arxiv.org/abs/2502.08235>.
+
+Dettmers, T. and Zettlemoyer, L. (2023) 'The case for 4-bit precision: k-bit inference scaling laws', in *Proceedings of the 40th International Conference on Machine Learning*, Proceedings of Machine Learning Research, vol. 202, pp. 7750–7774. PMLR. Also available as arXiv:[2212.09720](https://arxiv.org/abs/2212.09720).
+
+Dettmers, T., Pagnoni, A., Holtzman, A. and Zettlemoyer, L. (2023) 'QLoRA: Efficient finetuning of quantized LLMs', in *Advances in Neural Information Processing Systems 36 (NeurIPS 2023)*. Curran Associates, Inc. Also available as arXiv:[2305.14314](https://arxiv.org/abs/2305.14314).
+
+Dilkes, J., Yazdanpanah, V. and Stein, S. (2025) 'Reinforced language models for sequential decision making', *arXiv preprint* arXiv:2508.10839. Available at: <https://arxiv.org/abs/2508.10839>.
+
+Duan, J., Zhang, R., Diffenderfer, J., Kailkhura, B., Sun, L., Stengel-Eskin, E., Bansal, M., Chen, T. and Xu, K. (2024) 'GTBench: Uncovering the strategic reasoning capabilities of LLMs via game-theoretic evaluations', in *Advances in Neural Information Processing Systems 37 (NeurIPS 2024)*. Curran Associates, Inc. Title as in the proceedings index; the paper PDF and arXiv:2402.12348 read “Uncovering the Strategic Reasoning Limitations of LLMs via Game-Theoretic Evaluations”.
+
+Fan, C., Chen, J., Jin, Y. and He, H. (2024) 'Can large language models serve as rational players in game theory? A systematic analysis', *Proceedings of the AAAI Conference on Artificial Intelligence*, 38(16), pp. 17960–17967. doi: [10.1609/aaai.v38i16.29751](https://doi.org/10.1609/aaai.v38i16.29751).
+
+Frantar, E., Ashkboos, S., Hoefler, T. and Alistarh, D. (2023) 'OPTQ: Accurate quantization for generative pre-trained transformers', in *The Eleventh International Conference on Learning Representations (ICLR 2023)*. OpenReview.net. Widely cited as GPTQ; preprint version: arXiv:2210.17323, “GPTQ: Accurate Post-Training Quantization for Generative Pre-trained Transformers”.
+
+Gao, L., Tow, J., Abbasi, B., Biderman, S., Black, S., DiPofi, A., Foster, C., Golding, L., Hsu, J., Le Noac'h, A., Li, H., McDonell, K., Muennighoff, N., Ociepa, C., Phang, J., Reynolds, L., Schoelkopf, H., Skowron, A., Sutawika, L., Tang, E., Thite, A., Wang, B., Wang, K. and Zou, A. (2023) 'A framework for few-shot language model evaluation', Zenodo software release of EleutherAI's lm-evaluation-harness, version v0.4.0, 4 December 2023. doi: [10.5281/zenodo.10256836](https://doi.org/10.5281/zenodo.10256836). (Accessed: 8 October 2026).
+
+Gema, A. P., Hägele, A., Chen, R., Arditi, A., Goldman-Wetzler, J., Fraser-Taliente, K., Sleight, H., Petrini, L., Michael, J., Alex, B., Minervini, P., Chen, Y., Benton, J. and Perez, E. (2025) 'Inverse scaling in test-time compute', *Transactions on Machine Learning Research*. Available at: <https://openreview.net/forum?id=NXgyHW1c7M>.
+
+Gemma Team (2025) 'Gemma 3 technical report', *arXiv preprint* arXiv:2503.19786. Google DeepMind. Available at: <https://arxiv.org/abs/2503.19786>.
+
+Google (2025) 'Introducing Gemma 3n: The developer guide', Google Developers Blog, 26 June 2025. Available at: <https://developers.googleblog.com/en/introducing-gemma-3n-developer-guide/> (Accessed: 8 October 2026).
+
+Google (2026) 'Gemma 4: Byte for byte, the most capable open models', Google blog, 2 April 2026 (announcement by C. Farabet and O. Lacombe, Google DeepMind). Available at: <https://blog.google/innovation-and-ai/technology/developers-tools/gemma-4/> (Accessed: 8 October 2026).
+
+Grattafiori, A., Dubey, A. et al. (2024) 'The Llama 3 herd of models', *arXiv preprint* arXiv:2407.21783. Llama Team, AI at Meta. Available at: <https://arxiv.org/abs/2407.21783>.
+
+Guertler, L., Cheng, B., Yu, S., Liu, B., Choshen, L. and Tan, C. (2025) 'TextArena', *arXiv preprint* arXiv:2504.11442. Available at: <https://arxiv.org/abs/2504.11442>.
+
+Guo, C., Pleiss, G., Sun, Y. and Weinberger, K. Q. (2017) 'On calibration of modern neural networks', in *Proceedings of the 34th International Conference on Machine Learning*, Proceedings of Machine Learning Research, vol. 70, pp. 1321–1330. PMLR. Also available as arXiv:[1706.04599](https://arxiv.org/abs/1706.04599).
+
+Guo, D., Yang, D., Zhang, H., Song, J. et al. (2025) 'DeepSeek-R1 incentivizes reasoning in LLMs through reinforcement learning', *Nature*, 645(8081), pp. 633–638. Preprint version: DeepSeek-AI, arXiv:2501.12948, “DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning”. doi: [10.1038/s41586-025-09422-z](https://doi.org/10.1038/s41586-025-09422-z).
+
+Harris, K. and Slivkins, A. (2026) 'Should you use your large language model to explore or exploit?', in *Proceedings of the 42nd Conference on Uncertainty in Artificial Intelligence*, Proceedings of Machine Learning Research, vol. 337, pp. 2008–2058. PMLR. Also available as arXiv:[2502.00225](https://arxiv.org/abs/2502.00225).
+
+Hegselmann, S., Buendia, A., Lang, H., Agrawal, M., Jiang, X. and Sontag, D. (2023) 'TabLLM: Few-shot classification of tabular data with large language models', in *Proceedings of the 26th International Conference on Artificial Intelligence and Statistics*, Proceedings of Machine Learning Research, vol. 206, pp. 5549–5581. PMLR. Also available as arXiv:[2210.10723](https://arxiv.org/abs/2210.10723).
+
+Henderson, P., Islam, R., Bachman, P., Pineau, J., Precup, D. and Meger, D. (2018) 'Deep reinforcement learning that matters', *Proceedings of the AAAI Conference on Artificial Intelligence*, 32(1). doi: [10.1609/aaai.v32i1.11694](https://doi.org/10.1609/aaai.v32i1.11694).
+
+Hendrycks, D., Burns, C., Basart, S., Zou, A., Mazeika, M., Song, D. and Steinhardt, J. (2021) 'Measuring massive multitask language understanding', in *The Ninth International Conference on Learning Representations (ICLR 2021)*. OpenReview.net. Also available as arXiv:[2009.03300](https://arxiv.org/abs/2009.03300).
+
+Hoffmann, J., Borgeaud, S., Mensch, A., Buchatskaya, E., Cai, T., Rutherford, E., de Las Casas, D., Hendricks, L. A., Welbl, J., Clark, A., Hennigan, T., Noland, E., Millican, K., van den Driessche, G., Damoc, B., Guy, A., Osindero, S., Simonyan, K., Elsen, E., Vinyals, O., Rae, J. and Sifre, L. (2022) 'An empirical analysis of compute-optimal large language model training', in *Advances in Neural Information Processing Systems 35 (NeurIPS 2022)*. Curran Associates, Inc. Title as in the proceedings index; the paper PDF and arXiv:2203.15556 read “Training Compute-Optimal Large Language Models”.
+
+Holtzman, A., West, P., Shwartz, V., Choi, Y. and Zettlemoyer, L. (2021) 'Surface form competition: Why the highest probability answer isn't always right', in *Proceedings of the 2021 Conference on Empirical Methods in Natural Language Processing*, pp. 7038–7051. Association for Computational Linguistics, Online and Punta Cana, Dominican Republic. doi: [10.18653/v1/2021.emnlp-main.564](https://doi.org/10.18653/v1/2021.emnlp-main.564).
+
+Hu, E. J., Shen, Y., Wallis, P., Allen-Zhu, Z., Li, Y., Wang, S., Wang, L. and Chen, W. (2022) 'LoRA: Low-rank adaptation of large language models', in *The Tenth International Conference on Learning Representations (ICLR 2022)*. OpenReview.net. Also available as arXiv:[2106.09685](https://arxiv.org/abs/2106.09685).
+
+Huang, W., Abbeel, P., Pathak, D. and Mordatch, I. (2022) 'Language models as zero-shot planners: Extracting actionable knowledge for embodied agents', in *Proceedings of the 39th International Conference on Machine Learning*, Proceedings of Machine Learning Research, vol. 162, pp. 9118–9147. PMLR. Also available as arXiv:[2201.07207](https://arxiv.org/abs/2201.07207).
+
+Jia, J., Yuan, Z., Pan, J., McNamara, P. E. and Chen, D. (2024) 'Decision-making behavior evaluation framework for LLMs under uncertain context', in *Advances in Neural Information Processing Systems 37 (NeurIPS 2024)*. Curran Associates, Inc. Also available as arXiv:[2406.05972](https://arxiv.org/abs/2406.05972).
+
+Jiwatode, M., Fuchs, R., Schmöcker, R., Rosenhahn, B. and Dockhorn, A. (2026) 'Spatial reasoning in LLM game agents: Impact of causal context and multi-step planning', *arXiv preprint* arXiv:2607.22732. The authors' arXiv comment states that the paper is to be published at the IEEE Conference on Games (CoG) 2026. Available at: <https://arxiv.org/abs/2607.22732>.
+
+Kadavath, S., Conerly, T., Askell, A., Henighan, T. et al. (2022) 'Language models (mostly) know what they know', *arXiv preprint* arXiv:2207.05221. Available at: <https://arxiv.org/abs/2207.05221>.
+
+Kaplan, J., McCandlish, S., Henighan, T., Brown, T. B., Chess, B., Child, R., Gray, S., Radford, A., Wu, J. and Amodei, D. (2020) 'Scaling laws for neural language models', *arXiv preprint* arXiv:2001.08361. Available at: <https://arxiv.org/abs/2001.08361>.
+
+Krishnamurthy, A., Harris, K., Foster, D. J., Zhang, C. and Slivkins, A. (2024) 'Can large language models explore in-context?', in *Advances in Neural Information Processing Systems 37 (NeurIPS 2024)*. Curran Associates, Inc. Also available as arXiv:[2403.15371](https://arxiv.org/abs/2403.15371).
+
+Kumar, T., Ankner, Z., Spector, B. F., Bordelon, B., Muennighoff, N., Paul, M., Pehlevan, C., Ré, C. and Raghunathan, A. (2025) 'Scaling laws for precision', in *The Thirteenth International Conference on Learning Representations (ICLR 2025)*. OpenReview.net. Also available as arXiv:[2411.04330](https://arxiv.org/abs/2411.04330).
+
+Laskin, M., Wang, L., Oh, J., Parisotto, E., Spencer, S., Steigerwald, R., Strouse, D., Hansen, S., Filos, A., Brooks, E., Gazeau, M., Sahni, H., Singh, S. and Mnih, V. (2023) 'In-context reinforcement learning with algorithm distillation', in *The Eleventh International Conference on Learning Representations (ICLR 2023)*. OpenReview.net. Also available as arXiv:[2210.14215](https://arxiv.org/abs/2210.14215).
+
+Lattimore, T. and Szepesvári, C. (2020) *Bandit Algorithms*. Cambridge: Cambridge University Press. doi: [10.1017/9781108571401](https://doi.org/10.1017/9781108571401).
+
+Li, Y., Yue, X., Xu, Z., Jiang, F., Niu, L., Lin, B. Y., Ramasubramanian, B. and Poovendran, R. (2025) 'Small models struggle to learn from strong reasoners', in *Findings of the Association for Computational Linguistics: ACL 2025*, pp. 25366–25394. Association for Computational Linguistics, Vienna, Austria. doi: [10.18653/v1/2025.findings-acl.1301](https://doi.org/10.18653/v1/2025.findings-acl.1301).
+
+Lin, B. Y., Ravichander, A., Lu, X., Dziri, N., Sclar, M., Chandu, K., Bhagavatula, C. and Choi, Y. (2024) 'The unlocking spell on base LLMs: Rethinking alignment via in-context learning', in *The Twelfth International Conference on Learning Representations (ICLR 2024)*. OpenReview.net. Also available as arXiv:[2312.01552](https://arxiv.org/abs/2312.01552).
+
+Lin, J., Tang, J., Tang, H., Yang, S., Chen, W.-M., Wang, W.-C., Xiao, G., Dang, X., Gan, C. and Han, S. (2024) 'AWQ: Activation-aware weight quantization for on-device LLM compression and acceleration', in *Proceedings of Machine Learning and Systems 6 (MLSys 2024)*. Preprint version: arXiv:2306.00978, whose title omits “On-Device”.
+
+Liu, R., Geng, J., Peterson, J. C., Sucholutsky, I. and Griffiths, T. L. (2025) 'Large language models assume people are more rational than we really are', in *The Thirteenth International Conference on Learning Representations (ICLR 2025)*. OpenReview.net. Also available as arXiv:[2406.17055](https://arxiv.org/abs/2406.17055).
+
+Liu, R., Geng, J., Wu, A. J., Sucholutsky, I., Lombrozo, T. and Griffiths, T. L. (2025) 'Mind your step (by step): Chain-of-thought can reduce performance on tasks where thinking makes humans worse', in *Proceedings of the 42nd International Conference on Machine Learning*, Proceedings of Machine Learning Research, vol. 267, pp. 38489–38517. PMLR. Also available as arXiv:[2410.21333](https://arxiv.org/abs/2410.21333).
+
+Liu, R., Sun, Y., Zhang, M., Bai, H., Yu, X., Yu, T., Yuan, C. and Hou, L. (2025) 'Quantization hurts reasoning? An empirical study on quantized reasoning models', in *Second Conference on Language Modeling (COLM 2025)*. OpenReview.net. Also available as arXiv:[2504.04823](https://arxiv.org/abs/2504.04823).
+
+Liu, X., Yu, H., Zhang, H., Xu, Y., Lei, X., Lai, H., Gu, Y., Ding, H., Men, K., Yang, K., Zhang, S., Deng, X., Zeng, A., Du, Z., Zhang, C., Shen, S., Zhang, T., Su, Y., Sun, H., Huang, M., Dong, Y. and Tang, J. (2024) 'AgentBench: Evaluating LLMs as agents', in *The Twelfth International Conference on Learning Representations (ICLR 2024)*. OpenReview.net. Also available as arXiv:[2308.03688](https://arxiv.org/abs/2308.03688).
+
+Liu, B., Yu, S., Liu, Z., Guertler, L., Qi, P., Balcells, D., Liu, M., Tan, C., Shi, W., Lin, M., Lee, W. S. and Jaques, N. (2026) 'SPIRAL: Self-play on zero-sum games incentivizes reasoning via multi-agent multi-turn reinforcement learning', in *The Fourteenth International Conference on Learning Representations (ICLR 2026)*. OpenReview.net. Also available as arXiv:[2506.24119](https://arxiv.org/abs/2506.24119).
+
+Meta (2025) 'Llama models', Official GitHub repository meta-llama/llama-models (model cards, release table and licences for Llama 3.1, 3.2, 3.3 and 4). Available at: <https://github.com/meta-llama/llama-models> (Accessed: 8 October 2026).
+
+Mistral AI (2025a) 'Introducing Mistral 3', Mistral AI news announcement, 2 December 2025 (Mistral Large 3 and the Ministral 3 family). Available at: <https://mistral.ai/news/mistral-3/> (Accessed: 8 October 2026).
+
+Mistral AI (2025b) 'Mistral Small 3', Mistral AI news announcement, 30 January 2025. Available at: <https://mistral.ai/news/mistral-small-3/> (Accessed: 8 October 2026).
+
+Mistral AI (2025c) 'Mistral Small 3.1', Mistral AI news announcement, 17 March 2025. Available at: <https://mistral.ai/news/mistral-small-3-1/> (Accessed: 8 October 2026).
+
+Monea, G., Bosselut, A., Brantley, K. and Artzi, Y. (2025) 'LLMs are in-context bandit reinforcement learners', in *Second Conference on Language Modeling (COLM 2025)*. OpenReview.net. Also available as arXiv:[2410.05362](https://arxiv.org/abs/2410.05362).
+
+Nie, A., Su, Y., Chang, B., Lee, J., Chi, E. H., Le, Q. V. and Chen, M. (2025) 'EVOLvE: Evaluating and optimizing LLMs for in-context exploration', in *Proceedings of the 42nd International Conference on Machine Learning*, Proceedings of Machine Learning Research, vol. 267, pp. 46346–46376. PMLR. Also available as arXiv:[2410.06238](https://arxiv.org/abs/2410.06238).
+
+OpenAI (2025) 'gpt-oss-120b & gpt-oss-20b model card', *arXiv preprint* arXiv:2508.10925. Available at: <https://arxiv.org/abs/2508.10925>.
+
+Orgad, H., Toker, M., Gekhman, Z., Reichart, R., Szpektor, I., Kotek, H. and Belinkov, Y. (2025) 'LLMs know more than they show: On the intrinsic representation of LLM hallucinations', in *The Thirteenth International Conference on Learning Representations (ICLR 2025)*. OpenReview.net. Also available as arXiv:[2410.02707](https://arxiv.org/abs/2410.02707).
+
+Paglieri, D., Cupiał, B., Coward, S., Piterbarg, U., Wołczyk, M., Khan, A., Pignatelli, E., Kuciński, Ł., Pinto, L., Fergus, R., Foerster, J., Parker-Holder, J. and Rocktäschel, T. (2025) 'BALROG: Benchmarking agentic LLM and VLM reasoning on games', in *The Thirteenth International Conference on Learning Representations (ICLR 2025)*. OpenReview.net. Also available as arXiv:[2411.13543](https://arxiv.org/abs/2411.13543).
+
+Pomerleau, D. A. (1988) 'ALVINN: An autonomous land vehicle in a neural network', in D. S. Touretzky (ed.) *Advances in Neural Information Processing Systems 1 (NIPS 1988)*, pp. 305–313. Morgan Kaufmann. Proceedings volume published in 1989.
+
+Qwen Team (2025) 'Qwen3', Official GitHub repository QwenLM/Qwen3 (model release notes, including the Qwen3-2507 updates). Available at: <https://github.com/QwenLM/Qwen3> (Accessed: 8 October 2026).
+
+Qwen Team (2026) 'Qwen3.8', Official GitHub repository QwenLM/Qwen3.8 (release notes for Qwen3.5, Qwen3.6 and Qwen3.8). Available at: <https://github.com/QwenLM/Qwen3.8> (Accessed: 8 October 2026).
+
+Rafailov, R., Sharma, A., Mitchell, E., Manning, C. D., Ermon, S. and Finn, C. (2023) 'Direct preference optimization: Your language model is secretly a reward model', in *Advances in Neural Information Processing Systems 36 (NeurIPS 2023)*. Curran Associates, Inc. Also available as arXiv:[2305.18290](https://arxiv.org/abs/2305.18290).
+
+Robinson, J. and Wingate, D. (2023) 'Leveraging large language models for multiple choice question answering', in *The Eleventh International Conference on Learning Representations (ICLR 2023)*. OpenReview.net. Also available as arXiv:[2210.12353](https://arxiv.org/abs/2210.12353).
+
+Ross, S., Gordon, G. and Bagnell, D. (2011) 'A reduction of imitation learning and structured prediction to no-regret online learning', in *Proceedings of the Fourteenth International Conference on Artificial Intelligence and Statistics*, Proceedings of Machine Learning Research, vol. 15, pp. 627–635. PMLR, Fort Lauderdale, FL, USA. Also available as arXiv:[1011.0686](https://arxiv.org/abs/1011.0686).
+
+Ruoss, A., Pardo, F., Chan, H., Li, B., Mnih, V. and Genewein, T. (2025) 'LMAct: A benchmark for in-context imitation learning with long multimodal demonstrations', in *Proceedings of the 42nd International Conference on Machine Learning*, Proceedings of Machine Learning Research, vol. 267, pp. 52303–52344. PMLR. Also available as arXiv:[2412.01441](https://arxiv.org/abs/2412.01441).
+
+Schaeffer, R., Miranda, B. and Koyejo, S. (2023) 'Are emergent abilities of large language models a mirage?', in *Advances in Neural Information Processing Systems 36 (NeurIPS 2023)*. Curran Associates, Inc. Also available as arXiv:[2304.15004](https://arxiv.org/abs/2304.15004).
+
+Schmied, T., Bornschein, J., Grau-Moya, J., Wulfmeier, M. and Pascanu, R. (2026) 'LLMs are greedy agents: Effects of RL fine-tuning on decision-making abilities', in *The Fourteenth International Conference on Learning Representations (ICLR 2026)*. OpenReview.net. Also available as arXiv:[2504.16078](https://arxiv.org/abs/2504.16078).
+
+Sclar, M., Choi, Y., Tsvetkov, Y. and Suhr, A. (2024) 'Quantifying language models' sensitivity to spurious features in prompt design or: How I learned to start worrying about prompt formatting', in *The Twelfth International Conference on Learning Representations (ICLR 2024)*. OpenReview.net. Also available as arXiv:[2310.11324](https://arxiv.org/abs/2310.11324).
+
+Shao, Z., Wang, P., Zhu, Q., Xu, R., Song, J., Bi, X., Zhang, H., Zhang, M., Li, Y. K., Wu, Y. and Guo, D. (2024) 'DeepSeekMath: Pushing the limits of mathematical reasoning in open language models', *arXiv preprint* arXiv:2402.03300. Available at: <https://arxiv.org/abs/2402.03300>.
+
+Shinn, N., Cassano, F., Gopinath, A., Narasimhan, K. and Yao, S. (2023) 'Reflexion: Language agents with verbal reinforcement learning', in *Advances in Neural Information Processing Systems 36 (NeurIPS 2023)*. Curran Associates, Inc. Also available as arXiv:[2303.11366](https://arxiv.org/abs/2303.11366).
+
+Shojaee, P., Mirzadeh, I., Alizadeh, K., Horton, M., Bengio, S. and Farajtabar, M. (2025) 'The illusion of thinking: Understanding the strengths and limitations of reasoning models via the lens of problem complexity', in *Advances in Neural Information Processing Systems 38 (NeurIPS 2025)*. Curran Associates, Inc. Also available as arXiv:[2506.06941](https://arxiv.org/abs/2506.06941).
+
+Sinha, A., Arun, A., Goel, S., Staab, S. and Geiping, J. (2026) 'The illusion of diminishing returns: Measuring long horizon execution in LLMs', in *The Fourteenth International Conference on Learning Representations (ICLR 2026)*. OpenReview.net. Also available as arXiv:[2509.09677](https://arxiv.org/abs/2509.09677).
+
+Skean, O., Arefin, M. R., Zhao, D., Patel, N., Naghiyev, J., LeCun, Y. and Shwartz-Ziv, R. (2025) 'Layer by layer: Uncovering hidden representations in language models', in *Proceedings of the 42nd International Conference on Machine Learning*, Proceedings of Machine Learning Research, vol. 267, pp. 55854–55875. PMLR. Also available as arXiv:[2502.02013](https://arxiv.org/abs/2502.02013).
+
+Snell, C., Lee, J., Xu, K. and Kumar, A. (2025) 'Scaling LLM test-time compute optimally can be more effective than scaling parameters for reasoning', in *The Thirteenth International Conference on Learning Representations (ICLR 2025)*. OpenReview.net. Preprint version: arXiv:2408.03314, “Scaling LLM Test-Time Compute Optimally can be More Effective than Scaling Model Parameters”.
+
+Sutton, R. S. and Barto, A. G. (2018) *Reinforcement Learning: An Introduction*. Second edn. Adaptive Computation and Machine Learning. Cambridge, MA: MIT Press.
+
+Szot, A., Schwarzer, M., Agrawal, H., Mazoure, B., Talbott, W., Metcalf, K., Mackraz, N., Hjelm, D. and Toshev, A. (2024) 'Large language models as generalizable policies for embodied tasks', in *The Twelfth International Conference on Learning Representations (ICLR 2024)*. OpenReview.net. Also available as arXiv:[2310.17722](https://arxiv.org/abs/2310.17722).
+
+Tajwar, F., Jiang, Y., Thankaraj, A., Rahman, S. S., Kolter, J. Z., Schneider, J. and Salakhutdinov, R. (2025) 'Training a generally curious agent', in *Proceedings of the 42nd International Conference on Machine Learning*, Proceedings of Machine Learning Research, vol. 267, pp. 58227–58281. PMLR. Also available as arXiv:[2502.17543](https://arxiv.org/abs/2502.17543).
+
+Tam, Z. R., Wu, C.-K., Tsai, Y.-L., Lin, C.-Y., Lee, H.-y. and Chen, Y.-N. (2024) 'Let me speak freely? A study on the impact of format restrictions on large language model performance', in *Proceedings of the 2024 Conference on Empirical Methods in Natural Language Processing: Industry Track*, pp. 1218–1236. Association for Computational Linguistics, Miami, Florida, US. Preprint version: arXiv:2408.02442, “Let Me Speak Freely? A Study on the Impact of Format Restrictions on Performance of Large Language Models”. doi: [10.18653/v1/2024.emnlp-industry.91](https://doi.org/10.18653/v1/2024.emnlp-industry.91).
+
+Tan, W., Zhang, W., Liu, S., Zheng, L., Wang, X. and An, B. (2024) 'True knowledge comes from practice: Aligning large language models with embodied environments via reinforcement learning', in *The Twelfth International Conference on Learning Representations (ICLR 2024)*. OpenReview.net. Also available as arXiv:[2401.14151](https://arxiv.org/abs/2401.14151).
+
+Team Olmo, Ettinger, A. et al. (2025) 'Olmo 3', *arXiv preprint* arXiv:2512.13961. Available at: <https://arxiv.org/abs/2512.13961>.
+
+Towers, M., Kwiatkowski, A., Terry, J., Balis, J. U., De Cola, G., Deleu, T., Goulão, M., Kallinteris, A., Krimmel, M., KG, A., Perez-Vicente, R., Pierré, A., Schulhoff, S., Tai, J. J., Tan, H. and Younis, O. G. (2025) 'Gymnasium: A standard interface for reinforcement learning environments', in *Advances in Neural Information Processing Systems 38 (NeurIPS 2025), Datasets and Benchmarks Track*. Curran Associates, Inc. doi: [10.52202/085713-4916](https://doi.org/10.52202/085713-4916).
+
+Walsh, E. P., Soldaini, L., Groeneveld, D., Lo, K. et al. (2025) '2 OLMo 2 Furious (COLM's version)', in *Second Conference on Language Modeling (COLM 2025)*. OpenReview.net. Shorter conference version of the technical report arXiv:2501.00656, “2 OLMo 2 Furious” (Team OLMo et al.).
+
+Wang, X., Hu, C., Ma, B., Röttger, P. and Plank, B. (2024) 'Look at the text: Instruction-tuned language models are more robust multiple choice selectors than you think', in *First Conference on Language Modeling (COLM 2024)*. OpenReview.net. Also available as arXiv:[2404.08382](https://arxiv.org/abs/2404.08382).
+
+Wang, X., Ma, B., Hu, C., Weber-Genzel, L., Röttger, P., Kreuter, F., Hovy, D. and Plank, B. (2024) '“My answer is C”: First-token probabilities do not match text answers in instruction-tuned language models', in *Findings of the Association for Computational Linguistics: ACL 2024*, pp. 7407–7416. Association for Computational Linguistics, Bangkok, Thailand. doi: [10.18653/v1/2024.findings-acl.441](https://doi.org/10.18653/v1/2024.findings-acl.441).
+
+Wang, X., Wei, J., Schuurmans, D., Le, Q. V., Chi, E. H., Narang, S., Chowdhery, A. and Zhou, D. (2023) 'Self-consistency improves chain of thought reasoning in language models', in *The Eleventh International Conference on Learning Representations (ICLR 2023)*. OpenReview.net. Also available as arXiv:[2203.11171](https://arxiv.org/abs/2203.11171).
+
+Wang, Z., Wang, K., Wang, Q., Zhang, P., Li, L., Yang, Z., Jin, X., Yu, K., Nguyen, M. N., Liu, L., Gottlieb, E., Lu, Y., Cho, K., Wu, J., Fei-Fei, L., Wang, L., Choi, Y. and Li, M. (2025) 'RAGEN: Understanding self-evolution in LLM agents via multi-turn reinforcement learning', *arXiv preprint* arXiv:2504.20073. Available at: <https://arxiv.org/abs/2504.20073>.
+
+Wei, J., Tay, Y., Bommasani, R., Raffel, C., Zoph, B., Borgeaud, S., Yogatama, D., Bosma, M., Zhou, D., Metzler, D., Chi, E. H., Hashimoto, T., Vinyals, O., Liang, P., Dean, J. and Fedus, W. (2022) 'Emergent abilities of large language models', *Transactions on Machine Learning Research*. Available at: <https://openreview.net/forum?id=yzkSU5zdwD>.
+
+Wei, J., Wang, X., Schuurmans, D., Bosma, M., Ichter, B., Xia, F., Chi, E. H., Le, Q. V. and Zhou, D. (2022) 'Chain-of-thought prompting elicits reasoning in large language models', in *Advances in Neural Information Processing Systems 35 (NeurIPS 2022)*. Curran Associates, Inc. doi: [10.52202/068431-1800](https://doi.org/10.52202/068431-1800).
+
+Wu, Y., Tang, X., Mitchell, T. and Li, Y. (2024) 'SmartPlay: A benchmark for LLMs as intelligent agents', in *The Twelfth International Conference on Learning Representations (ICLR 2024)*. OpenReview.net. Also available as arXiv:[2310.01557](https://arxiv.org/abs/2310.01557).
+
+Yang, A., Yang, B., Zhang, B. et al. (2024) 'Qwen2.5 technical report', *arXiv preprint* arXiv:2412.15115. Qwen Team, Alibaba Group. Available at: <https://arxiv.org/abs/2412.15115>.
+
+Yang, A., Li, A., Yang, B., Zhang, B. et al. (2025) 'Qwen3 technical report', *arXiv preprint* arXiv:2505.09388. Qwen Team, Alibaba Group. Available at: <https://arxiv.org/abs/2505.09388>.
+
+Yao, S., Zhao, J., Yu, D., Du, N., Shafran, I., Narasimhan, K. and Cao, Y. (2023) 'ReAct: Synergizing reasoning and acting in language models', in *The Eleventh International Conference on Learning Representations (ICLR 2023)*. OpenReview.net. Also available as arXiv:[2210.03629](https://arxiv.org/abs/2210.03629).
+
+Zhao, T. Z., Wallace, E., Feng, S., Klein, D. and Singh, S. (2021) 'Calibrate before use: Improving few-shot performance of language models', in *Proceedings of the 38th International Conference on Machine Learning*, Proceedings of Machine Learning Research, vol. 139, pp. 12697–12706. PMLR. Also available as arXiv:[2102.09690](https://arxiv.org/abs/2102.09690).
+
+Zheng, C., Zhou, H., Meng, F., Zhou, J. and Huang, M. (2024) 'Large language models are not robust multiple choice selectors', in *The Twelfth International Conference on Learning Representations (ICLR 2024)*. OpenReview.net. Also available as arXiv:[2309.03882](https://arxiv.org/abs/2309.03882).
+
+Zheng, X., Li, Y., Chu, H., Feng, Y., Ma, X., Wang, Z., Luo, J., Guo, J., Qin, H., Magno, M. and Liu, X. (2026) 'An empirical study of Qwen3 quantization', *Visual Intelligence*, 4, Article 11. doi: [10.1007/s44267-026-00114-4](https://doi.org/10.1007/s44267-026-00114-4).
+
+Zhou, C., Liu, P., Xu, P., Iyer, S., Sun, J., Mao, Y., Ma, X., Efrat, A., Yu, P., Yu, L., Zhang, S., Ghosh, G., Lewis, M., Zettlemoyer, L. and Levy, O. (2023) 'LIMA: Less is more for alignment', in *Advances in Neural Information Processing Systems 36 (NeurIPS 2023)*. Curran Associates, Inc. Also available as arXiv:[2305.11206](https://arxiv.org/abs/2305.11206).
+
+Zhou, J., Lu, T., Mishra, S., Brahma, S., Basu, S., Luan, Y., Zhou, D. and Hou, L. (2023) 'Instruction-following evaluation for large language models', *arXiv preprint* arXiv:2311.07911. Available at: <https://arxiv.org/abs/2311.07911>.
