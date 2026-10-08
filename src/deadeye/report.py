@@ -271,13 +271,15 @@ def fig_scale(cells: pd.DataFrame, out: Path) -> Path | None:
     for ax in axes.ravel()[n:]:
         ax.axis("off")
     all_handles = {**handles, **ref_handles}
-    fig.legend(all_handles.values(), all_handles.keys(), loc="lower center", ncol=min(4, max(1, len(all_handles))), frameon=False,
-               fontsize=8, bbox_to_anchor=(0.5, -0.02))
+    ncol_leg = min(4, max(1, len(all_handles)))
+    leg_rows = int(np.ceil(len(all_handles) / ncol_leg))
+    fig.legend(all_handles.values(), all_handles.keys(), loc="lower center", ncol=ncol_leg, frameon=False, fontsize=8,
+               bbox_to_anchor=(0.5, 0.0))
     fig.suptitle("Decision quality vs model size", color=TEXT_PRIMARY, fontsize=11, x=0.01, ha="left")
-    fig.tight_layout(rect=(0, 0.06, 1, 0.97))
+    fig.tight_layout(rect=(0, 0.03 + 0.035 * leg_rows, 1, 0.97))
     out.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(out.with_suffix(".png"), dpi=160)
-    fig.savefig(out.with_suffix(".pdf"))
+    fig.savefig(out.with_suffix(".png"), dpi=160, bbox_inches="tight")
+    fig.savefig(out.with_suffix(".pdf"), bbox_inches="tight")
     plt.close(fig)
     return out.with_suffix(".png")
 
