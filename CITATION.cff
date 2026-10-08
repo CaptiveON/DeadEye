@@ -1,0 +1,10 @@
+cff-version: 1.2.0
+message: "If you use DeadEye, please cite it."
+title: "DeadEye: a reproducible benchmark for converting open-weight language models into decision-making policies"
+type: software
+version: 0.1.0
+date-released: 2026-10-08
+license: Apache-2.0
+repository-code: "https://github.com/CaptiveON/DeadEye"
+authors:
+  - name: "DeadEye contributors"

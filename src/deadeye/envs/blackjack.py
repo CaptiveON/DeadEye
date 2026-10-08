@@ -1,0 +1,112 @@
+"""Blackjack (hit/stand) against the house: decisions under risk with a known optimal policy.
+
+Rules follow the Gymnasium convention: infinite deck (cards 1-10, with 10 four times as likely),
+dealer hits below 17, a natural (two-card 21) pays 1.5. Only *hit* and *stand* are available so the
+oracle is the standard basic-strategy hit/stand table. Cards are pre-drawn per seed so all policies
+see the same card stream.
+"""
+from __future__ import annotations
+
+import numpy as np
+
+from deadeye.envs.base import Environment, Observation, StepResult
+
+DECK = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 10, 10]
+
+
+def hand_value(hand: list[int]) -> tuple[int, bool]:
+    total = sum(hand)
+    usable = 1 in hand and total + 10 <= 21
+    return (total + 10 if usable else total), usable
+
+
+class BlackjackEnv(Environment):
+    name = "blackjack"
+    primary_metric = "return"
+    higher_is_better = True
+
+    def __init__(self, natural_bonus: bool = True, **params) -> None:
+        super().__init__(natural_bonus=natural_bonus, **params)
+        self.natural_bonus = bool(natural_bonus)
+        self.action_labels = ["hit", "stand"]
+        self.max_steps = 12
+
+    def _draw(self) -> int:
+        card = DECK[int(self._stream[self._k])]
+        self._k += 1
+        return card
+
+    def reset(self, seed: int) -> Observation:
+        self._rng = np.random.default_rng(seed + 20_011)
+        self._stream = self._rng.integers(len(DECK), size=64)
+        self._k = 0
+        self.player = [self._draw(), self._draw()]
+        self.dealer = [self._draw(), self._draw()]
+        self._t = 0
+        self._done = False
+        self._outcome = 0.0
+        self._bust = False
+        return self._obs()
+
+    def step(self, action: str) -> StepResult:
+        self._check_action(action, self.action_labels)
+        self._t += 1
+        reward = 0.0
+        if action == "hit":
+            self.player.append(self._draw())
+            total, _ = hand_value(self.player)
+            if total > 21:
+                self._done, self._bust, reward = True, True, -1.0
+        else:
+            self._done = True
+            ptotal, _ = hand_value(self.player)
+            while hand_value(self.dealer)[0] < 17:
+                self.dealer.append(self._draw())
+            dtotal, _ = hand_value(self.dealer)
+            if dtotal > 21 or ptotal > dtotal:
+                reward = 1.0
+                if self.natural_bonus and len(self.player) == 2 and ptotal == 21:
+                    reward = 1.5
+            elif ptotal == dtotal:
+                reward = 0.0
+            else:
+                reward = -1.0
+        if self._done:
+            self._outcome = reward
+        return StepResult(self._obs(), reward, self._done, {})
+
+    def oracle_action(self) -> str:
+        total, usable = hand_value(self.player)
+        up = self.dealer[0]
+        if usable:  # soft totals
+            if total >= 19:
+                return "stand"
+            if total == 18:
+                return "stand" if up in (2, 3, 4, 5, 6, 7, 8) else "hit"
+            return "hit"
+        if total >= 17:
+            return "stand"
+        if 13 <= total <= 16:
+            return "stand" if 2 <= up <= 6 else "hit"
+        if total == 12:
+            return "stand" if 4 <= up <= 6 else "hit"
+        return "hit"
+
+    def episode_metrics(self) -> dict[str, float]:
+        return {"win": float(self._outcome > 0), "loss": float(self._outcome < 0), "bust": float(self._bust)}
+
+    def describe(self) -> str:
+        return (
+            "You are playing blackjack against the dealer. Cards 2-10 are worth their number, face cards are worth 10 "
+            "and an ace is worth 11 if that does not bust you, otherwise 1. You may 'hit' (take another card) or "
+            "'stand' (end your turn). If you exceed 21 you bust and lose. After you stand, the dealer draws until "
+            "reaching 17 or more. You win if your total is higher than the dealer's or the dealer busts; equal totals "
+            "tie. A two-card 21 pays extra. Maximise your expected winnings."
+        )
+
+    def _obs(self) -> Observation:
+        total, usable = hand_value(self.player)
+        text = (f"Your cards: {', '.join(str(c) for c in self.player)} (total {total}{', with an ace counted as 11' if usable else ''}).\n"
+                f"Dealer shows: {self.dealer[0]}.")
+        feats = np.array([total / 21, float(usable), self.dealer[0] / 10], dtype=np.float32)
+        return Observation(text=text, legal_actions=list(self.action_labels), features=feats, info={"t": self._t})

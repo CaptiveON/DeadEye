@@ -1,0 +1,18 @@
+# Evaluate models served through any OpenAI-compatible endpoint (vLLM, llama.cpp server, Ollama, LM Studio, OpenRouter).
+# No GPU needed in the evaluation process. Set OPENAI_API_KEY (or api_key_env) if the server requires a key.
+# First-token scoring works best with `action_format: letter`; probes/LoRA need the local hf backend.
+name: served
+output_dir: results/served
+seeds: {start: 0, n: 50}
+envs:
+  - {name: bandit, params: {n_arms: 5, horizon: 50}}
+  - {name: loan, params: {n_applicants: 20}}
+  - {name: gridworld, params: {size: 6}}
+  - {name: tictactoe}
+models:
+  - {backend: openai, id: qwen2.5:7b-instruct, base_url: "http://localhost:11434/v1", params: 7620000000, family: qwen2.5, instruct: true, label: ollama-qwen2.5-7b}
+  - {backend: openai, id: Qwen/Qwen2.5-32B-Instruct, base_url: "http://localhost:8000/v1", params: 32500000000, family: qwen2.5, instruct: true, label: vllm-qwen2.5-32b}
+methods:
+  - {name: prompt_generate, params: {max_new_tokens: 16}}
+  - {name: prompt_score, params: {action_format: letter}, label: score_letter}
+baselines: [random, oracle, ucb1]

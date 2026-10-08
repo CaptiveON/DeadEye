@@ -1,0 +1,25 @@
+# Pipeline check: mock model + tiny random model, every environment, every method. No downloads. ~1-2 min on CPU.
+# Equivalent to `deadeye smoke`, kept as a file so peers can see the config format.
+name: smoke
+output_dir: results/smoke
+catalog: null
+seeds: {start: 0, n: 4}
+train_seeds: {start: 100000, n: 6}
+envs:
+  - {name: bandit, params: {n_arms: 3, horizon: 8}}
+  - {name: contextual_bandit, params: {horizon: 5}}
+  - {name: loan, params: {n_applicants: 4}}
+  - {name: gridworld, params: {size: 4, max_steps: 10, min_distance: 2}}
+  - {name: tictactoe}
+  - {name: blackjack}
+models:
+  - {backend: mock, id: mock-random, strategy: random, format_failure_rate: 0.25, params: 1000, family: mock, label: mock}
+  - {backend: hf, id: tiny-random, params: 205120, family: tiny, label: tiny}
+methods:
+  - {name: prompt_generate, params: {max_new_tokens: 6}}
+  - {name: prompt_score}
+  - {name: prompt_score, params: {action_format: letter}, label: prompt_score_letter}
+  - {name: probe, params: {n_train_episodes: 4, max_train_states: 60}}
+  - {name: feature_probe, params: {n_train_episodes: 4}}
+  - {name: lora_sft, params: {n_train_episodes: 2, max_train_states: 12, lora: {epochs: 2, r: 4, batch_size: 4, lr: 0.001}}}
+baselines: [random, oracle, ucb1]
