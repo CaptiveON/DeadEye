@@ -1,0 +1,19 @@
+# Companion to adaptation.yaml: LoRA with the full 100 training episodes on the two smallest rungs (H3 data budget).
+name: ablations_adaptation_lora100
+output_dir: results/ablations/adaptation_lora100
+seeds: {start: 0, n: 50}
+train_seeds: {start: 100000, n: 100}
+envs:
+  - {name: bandit, params: {n_arms: 5, horizon: 50, gap: 0.2}}
+  - {name: contextual_bandit, params: {n_actions: 3, dim: 4, horizon: 30}}
+  - {name: loan, params: {n_applicants: 20}}
+  - {name: gridworld, params: {size: 6}}
+  - {name: tictactoe, params: {opponent: random}, n_episodes: 150}
+  - {name: blackjack, params: {hands_per_episode: 20}, n_episodes: 50}
+  - {name: support, params: {n_tickets: 20}}
+models:
+  - {backend: hf, id: Qwen/Qwen2.5-0.5B-Instruct}
+  - {backend: hf, id: Qwen/Qwen2.5-1.5B-Instruct}
+methods:
+  - {name: lora_sft, params: {n_train_episodes: 100, max_train_states: 6000, lora: {r: 16, alpha: 32, epochs: 2}}, label: lora_n100}
+baselines: [random, oracle]

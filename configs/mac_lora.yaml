@@ -24,6 +24,8 @@ models:
   # --- Qwen3 (base + post-trained with thinking off) ---
   - {backend: hf, id: Qwen/Qwen3-0.6B-Base}
   - {backend: hf, id: Qwen/Qwen3-0.6B, chat_template_kwargs: {enable_thinking: false}}
+  - {backend: hf, id: Qwen/Qwen3-1.7B-Base}
+  - {backend: hf, id: Qwen/Qwen3-1.7B, chat_template_kwargs: {enable_thinking: false}}
   - {backend: hf, id: Qwen/Qwen3-4B-Base}
   - {backend: hf, id: Qwen/Qwen3-4B, chat_template_kwargs: {enable_thinking: false}}
   # --- SmolLM2 ---
@@ -31,6 +33,8 @@ models:
   - {backend: hf, id: HuggingFaceTB/SmolLM2-135M-Instruct}
   - {backend: hf, id: HuggingFaceTB/SmolLM2-360M}
   - {backend: hf, id: HuggingFaceTB/SmolLM2-360M-Instruct}
+  - {backend: hf, id: HuggingFaceTB/SmolLM2-1.7B}
+  - {backend: hf, id: HuggingFaceTB/SmolLM2-1.7B-Instruct}
   # --- Gemma 3 (gated: accept the licence on the hub and log in) ---
   - {backend: hf, id: google/gemma-3-270m}
   - {backend: hf, id: google/gemma-3-270m-it}

@@ -1,0 +1,31 @@
+\section{Future work: beyond one laptop}
+\label{sec:future}
+
+Everything left out of this study was left out because the laptop could not run it, not because we judged it unimportant. This section lists those parts in enough detail that someone with more hardware can continue where we stopped. Most of them need no change to the harness, the tasks, the seeds or the analysis code: a new configuration file adds rows to the same report, and the scale fits accept any ladder with at least three rungs.
+
+\paragraph{The upper rungs, with every method.}
+The ladders continue above 8B: Qwen2.5 at 14B, 32B and 72B \citep{qwen2024qwen25}, Qwen3 at 14B and 32B \citep{yang2025qwen3} and Gemma 3 at 12B and 27B \citep{gemma2025gemma3}. Exact scoring, probes and LoRA need their weights in accelerator memory. At about two bytes per parameter in 16-bit, one 80~GB GPU holds the rungs up to 32B; the 72B rung needs two such GPUs or 4-bit weights, which bitsandbytes NF4 loading brings to roughly 45~GB, and LoRA on 4-bit weights becomes QLoRA \citep{dettmers2023qlora}. The harness already loads 4-bit and 8-bit weights on CUDA. If the top rungs are quantized, the cost of quantization should be measured where both precisions fit, as the earlier form of H5 planned with NF4 and LLM.int8() weights \citep{dettmers2022llmint8}, and the quantized points should be marked in every figure. The same hardware would extend LoRA, which stops at 4B here, to the 7B and 8B rungs, and the H3 comparison to pairs about a hundred times apart, such as Qwen2.5 0.5B against 72B.
+
+\paragraph{Instruction tuning above 8B.}
+Qwen2.5 has base and instruct checkpoints at every size, so H2 can be tested up to 72B. Qwen3 released no base checkpoint at 32B, so its base-versus-instruct comparison stops at 14B, while its post-trained 32B checkpoint still extends the H1 slope. Llama~3.1 70B Instruct \citep{grattafiori2024llama3} would add a reference point at the top, read descriptively, since the Llama sizes come from different releases and do not form one ladder.
+
+\paragraph{Larger control ladders.}
+Pythia continues to 6.9B and 12B \citep{biderman2023pythia} and OLMo 2 to 13B and 32B \citep{olmo2025olmo2}. With these rungs the fully open ladders would span more than two orders of magnitude, and Pythia's shared data and order would help separate parameters from training tokens. The Llama~3.x releases from 1B to 70B, gated behind their license \citep{meta2025llamamodels}, could serve as a further, cross-release ladder for robustness checks.
+
+\paragraph{Longer reasoning.}
+The reasoning block stops at 256 tokens, which Qwen3's thinking mode can use up before it reaches an answer. Budgets of 2048 tokens on all seven tasks, with the separately trained Qwen3-4B Instruct-2507 and Thinking-2507 checkpoints as a second contrast, would test H7 as it was first conceived. By our planning estimates such a decision costs up to fifty times a direct answer, which is what kept it off the laptop.
+
+\paragraph{Full-size ablations.}
+The ablation blocks evaluate 50 episodes per cell and detect differences of about 0.14 rather than 0.10. Rerunning them with 100 episodes (300 tic-tac-toe games), extending the reasoning block to the four tasks it skips, and training LoRA on 100 episodes at every size would bring them to the precision of the main sweep.
+
+\paragraph{Decision models at full size and as services.}
+Kev at 9B and 27B \citep{palmer2026kev}, Clef at 27B \citep{cloudflare2026clef} and Perplexity's decider \citep{perplexity2026decider} publish weights beyond the 8B that our local backend holds. Run on one GPU machine next to our conversions, their latency would be measured on the same hardware and without a network round trip. The hosted services, Jev if access is granted \citep{typesafe2026jev}, Clef and Clef-flash on Workers AI, and Perplexity's Decisions API through an adapter, would complete the comparison as reference rows, with network time reported separately and no hypothesis attached, since their training data is unknown.
+
+\paragraph{Reinforcement-learning conversions.}
+DPO on pairs of oracle and model actions \citep{rafailov2023dpo} and GRPO with the environment's reward \citep{shao2024deepseekmath} would add a sixth conversion method, for which the local backend already exposes the log-probabilities and training loop. Reinforcement learning repairs some exploration failures that cloning does not \citep{schmied2026greedy} and generalizes differently \citep{chu2025sft}, and a learnable teacher such as UCB1 would make cloning on the bandit tasks meaningful \citep{laskin2023incontext}. Beyond the smallest rungs, all of this needs a GPU.
+
+\paragraph{A faster backend for Apple silicon.}
+Part of this list could return to the laptop. A backend built on MLX or llama.cpp, with access to the full logits and hidden states that an OpenAI-compatible server does not expose, would make exact scoring and probes faster on the same machine and, with 4-bit weights, would fit rungs of 14B and perhaps 32B into its memory.
+
+\paragraph{Cloud routes and their cost.}
+Three routes provide the hardware, at costs we can only estimate. Kaggle's free T4 hours, a weekly quota on 16~GB GPUs, are enough for some of the smaller additions, such as longer reasoning budgets on the small rungs or 4-bit probes up to about 14B. A rented A100 or H100 with 80~GB costs a few US dollars per hour, and the GPU sweep that earlier drafts of this design planned, with the ladders up to 72B and every method, was estimated at roughly 150 GPU-hours, a few hundred dollars at those rates. For prompting alone, a hosted OpenAI-compatible provider would be cheaper still, but the provider then controls precision and sampling and neither probes nor LoRA can be applied, so such rows could only be descriptive and would stay out of the scale fits.

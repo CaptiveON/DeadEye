@@ -16,7 +16,7 @@ Table~\ref{tab:envparams} lists every task parameter with its default, its value
 
 \begin{table}[h]
 \centering\small
-\caption{Task parameters. Ablation labels are the task-configuration keys used in the five files under \texttt{configs/ablations/}; blank cells take the main-sweep value.}
+\caption{Task parameters. Ablation labels are the task-configuration keys used in the ablation blocks under \texttt{configs/ablations/}; blank cells take the main-sweep value. Every ablation evaluates 50 episodes per task configuration, 150 for tic-tac-toe.}
 \label{tab:envparams}
 \begin{tabularx}{\linewidth}{@{}l l l l X@{}}
 \toprule
@@ -24,7 +24,7 @@ Task & Parameter & Default & Main sweep & Ablation variants\\
 \midrule
 \texttt{bandit} & \texttt{n\_arms} & 5 & 5 & 10 (\texttt{bandit\_hard})\\
  & \texttt{horizon} & 50 & 50 & 100 (\texttt{bandit\_hard})\\
- & \texttt{gap} & 0.2 & 0.2 & \\
+ & \texttt{gap} & 0.2 & 0.2 & 0.5 (\texttt{bandit\_easy})\\
  & \texttt{means\_mode} & \texttt{gap} & \texttt{gap} & \\
  & \texttt{history\_format} & \texttt{summary} & \texttt{summary} & \texttt{raw} (\texttt{bandit\_rawhist})\\
 \midrule
@@ -47,10 +47,11 @@ Task & Parameter & Default & Main sweep & Ablation variants\\
 \midrule
 \texttt{tictactoe} & \texttt{opponent} & \texttt{random} & \texttt{random} & \texttt{minimax} (\texttt{tictactoe\_minimax})\\
  & \texttt{agent\_mark} & \texttt{alternate} & \texttt{alternate} & \\
+ & episodes & & 300 & 150\\
 \midrule
 \texttt{blackjack} & \texttt{natural\_bonus} & true & true & \\
  & \texttt{hands\_per\_episode} & 1 & 20 & 20\\
- & episodes & & 100 & 100\\
+ & episodes & & 100 & 50\\
 \midrule
 \texttt{support} & \texttt{n\_tickets} & 10 & 20 & 40 (\texttt{support\_long})\\
 \bottomrule
@@ -87,10 +88,10 @@ The random baseline uses one generator per cell, seeded with 0. When a decision 
 This appendix restates \texttt{docs/preregistration.md} as frozen at the tag \texttt{prereg-v1}. \todo{Re-copy after the tag is created, and record any deviation below.}
 
 \paragraph{Research questions.}
-RQ1: how does decision quality scale with parameter count within a model family, and does the slope depend on the task's decision structure? RQ2: does the conversion method (prompting, likelihood scoring, hidden-state probe, LoRA behavior cloning) change the dependence on scale? RQ3: which other factors (instruction tuning, quantization, reasoning budget, observation format, prompt encoding, adaptation data budget) move decision quality, and by how much? RQ4: what is the frontier of quality against inference cost?
+RQ1: how does decision quality scale with parameter count within a model family, and does the slope depend on the task's decision structure? RQ2: does the conversion method (prompting, likelihood scoring, hidden-state probe, LoRA behavior cloning) change the dependence on scale? RQ3: which other factors (instruction tuning, quantization, reasoning budget, observation format, prompt encoding, adaptation data budget) move decision quality, and by how much? RQ4: what is the frontier of quality against inference cost? RQ5, exploratory and not a pre-registered test: how do small open-weight models converted here compare with the purpose-built decision models that run on the same laptop (Kev at 0.8B and 4B, Laya and SemIf) in decision quality, calibration, latency and cost on the same tasks and seeds? The hosted decision models are future work.
 
 \paragraph{Predictions.}
-Table~\ref{tab:prereg} lists every prediction with its criteria. ``Score'' is the normalized score \norm{}; ``CI'' is a 95\% bootstrap confidence interval; slopes are the $b$ of Equation~\eqref{eq:slope}, fitted within one family on the sweep results.
+Table~\ref{tab:prereg} lists every prediction with its criteria. ``Score'' is the normalized score \norm{}; ``CI'' is a 95\% bootstrap confidence interval; slopes are the $b$ of Equation~\eqref{eq:slope}, fitted within one ladder on the main-sweep results.
 
 \begin{table}[h]
 \centering\small
@@ -100,80 +101,86 @@ Table~\ref{tab:prereg} lists every prediction with its criteria. ``Score'' is th
 \toprule
 & Prediction & Supported if & Falsified if\\
 \midrule
-H1a & Under \texttt{prompt\_generate}, $b>0$ in every family & the CI of $b$ excludes 0 and is positive for every family with at least four sizes & any family's CI includes 0 or is negative\\
+H1a & Under \texttt{prompt\_generate}, $b>0$ in every ladder: SmolLM2 135M to 1.7B, Qwen2.5 0.5B to 7B, Qwen3 0.6B to 8B, Gemma 3 270M to 4B & the CI of $b$ excludes 0 and is positive for every ladder with at least three rungs & any ladder's CI includes 0 or is negative\\
 H1b & The slope is larger for gridworld and tic-tac-toe than for loan & the bootstrap CI of $b_{\text{plan}}-b_{\text{loan}}$ excludes 0 & that CI includes 0\\
-H2a & Instruct beats base under \texttt{prompt\_generate} at every size & the CI of the paired difference lies above 0 at 80\% of sizes or more & it does so at fewer than 50\% of sizes\\
-H2b & The instruct-minus-base gap under \texttt{probe} and \texttt{lora\_sft} is below 0.05 & the CI of the mean gap lies within $[-0.05, 0.05]$ & the CI excludes that interval\\
-H3a & The best \texttt{lora\_sft} model of at most 1.7B is at least as good as a \texttt{prompt\_generate} model ten times larger, in distribution & the CI of the paired difference is at or above 0 on at least 4 of 6 tasks & this holds on fewer than 3 tasks\\
-H3b & On \texttt{loan\_sign\_flip} and \texttt{loan\_covariate\_shift}, the small adapted model loses more relative to in distribution than the large model & the CI of the interaction excludes 0 & that CI includes 0\\
+H2a & Instruct beats base under \texttt{prompt\_generate} at every size of the four ladders & the CI of the paired difference lies above 0 at 80\% of sizes or more & it does so at fewer than 50\% of sizes\\
+H2b & The instruct-minus-base gap under \texttt{probe} (every size) and \texttt{lora\_sft} (sizes up to 4B) is below 0.05 & the CI of the mean gap lies within $[-0.05, 0.05]$ & the CI excludes that interval\\
+H3a & The smallest rung of each ladder with \texttt{lora\_sft} is at least as good as its largest rung with \texttt{prompt\_generate}, 12 to 15 times larger (SmolLM2 135M and 1.7B, Qwen2.5 0.5B and 7B, Qwen3 0.6B and 8B, Gemma 3 270M and 4B), in distribution & the CI of the paired difference is at or above 0 on at least 5 of 7 tasks, in at least 3 of the 4 ladders & this holds on 3 or fewer tasks in 2 or more ladders\\
+H3b & On \texttt{loan\_sign\_flip} and \texttt{loan\_covariate\_shift}, the small adapted model loses more relative to in distribution than the large model (task-structure block: Qwen2.5-Instruct 1.5B adapted, 7B zero-shot) & the CI of the interaction excludes 0 & that CI includes 0\\
 H4a & The illegal-action rate under \texttt{prompt\_score} is 0 & by construction & not applicable\\
 H4b & $b_{\text{score}} < 0.5\,b_{\text{gen}}$ & the bootstrap CI of the ratio lies below 0.5 & the CI includes 0.5 or lies above it\\
-H5 & int4 costs less than 0.05 at 7B and above and more than 0.10 below 2B & the CIs of the paired bf16-minus-int4 differences meet both thresholds & either threshold fails\\
+H5 & GGUF Q4\_K\_M weights cost less than 0.05 at 7B and more than 0.10 at 1.5B, and Q8\_0 weights less than 0.05 at every size, under generation and first-token letter scoring & the CIs of the paired 16-bit-minus-quantized differences meet the thresholds & any threshold fails\\
 H6a & No model under prompting reaches the UCB1 score on the bandit & every CI lies below the UCB1 score & any CI includes or exceeds it\\
 H6b & Summary history beats raw history for models below 2B & the paired CI lies above 0 for every such model & any such CI includes 0\\
-H7a & Thinking or chain-of-thought improves gridworld and tic-tac-toe at 4B and above & the paired CI lies above 0 & the CI includes 0\\
-H7b & Thinking or chain-of-thought does not improve models below 2B & the paired CI includes 0 or is negative & the CI lies above 0\\
-H7c & Latency-normalized score is lower with thinking at every size & the ratio of score to latency is lower at every size & it is higher at any size\\
+H7a & A 256-token thinking or chain-of-thought budget improves gridworld and tic-tac-toe at 4B and above (Qwen3 4B and 8B, Qwen2.5 7B) & the paired CI lies above 0 & the CI includes 0\\
+H7b & The same budget does not improve models below 2B (Qwen3 1.7B, Qwen2.5 1.5B) & the paired CI includes 0 or is negative & the CI lies above 0\\
+H7c & Latency-normalized score is lower with the budget at every size & the ratio of score to latency is lower at every size & it is higher at any size\\
 \bottomrule
 \end{tabularx}
 \end{table}
 
 \paragraph{Design, analysis and exclusions.}
-Tasks, parameters and seeds are those of the configuration files at the tag; evaluation seeds are 0 to 99 (0 to 299 for tic-tac-toe; blackjack plays twenty hands per episode) and training seeds 100000 to 100099, and prompts are frozen at the tag. The primary outcome is the normalized return per episode; secondary outcomes are the illegal-action rate, oracle agreement, the task metrics, and latency and tokens per decision. Each cell is summarized by its mean, interquartile mean and percentile bootstrap interval (2000 resamples); paired comparisons use sign-flip permutation tests (5000 permutations) with Holm's correction within each hypothesis's family of tests; slopes are fitted by ordinary least squares with bootstrap intervals over episodes. No episode is excluded because of its outcome. A cell is excluded only if its model fails to load or its run crashes, as recorded in \texttt{run\_manifest.json}, and no interim analysis changes the design.
+Tasks, parameters and seeds are those of the configuration files at the tag, run on one Apple M2 Max with 32~GB of memory and 16-bit weights, with LoRA on the rungs of at most 4B trained on 40 episodes and at most 3000 states. Evaluation seeds are 0 to 99 in the main sweep (0 to 299 for tic-tac-toe; blackjack plays twenty hands per episode) and 0 to 49 in the ablations and the free-reply configuration (0 to 149 for tic-tac-toe); training seeds are 100000 to 100099, and prompts are frozen at the tag. One hundred paired episodes detect a difference of 0.10 with power 0.8 when the standard deviation of the paired differences is at most 0.36; fifty detect about 0.14 at that spread, and the smallest detectable effect is reported next to every ablation result. The primary outcome is the normalized return per episode; secondary outcomes are the illegal-action rate, oracle agreement, the task metrics, and latency and tokens per decision. Each cell is summarized by its mean, interquartile mean and percentile bootstrap interval (2000 resamples); paired comparisons use sign-flip permutation tests (5000 permutations) with Holm's correction within each hypothesis's family of tests; slopes are fitted by ordinary least squares with bootstrap intervals over episodes. No episode is excluded because of its outcome. A cell is excluded only if its model fails to load or its run crashes, as recorded in \texttt{run\_manifest.json}, and no interim analysis changes the design.
 
 \paragraph{Deviations and excluded cells.}
-\todo{Copy the deviations table of docs/preregistration.md (date, change, reason) and list every excluded cell with the reason recorded in run\_manifest.json; write ``none'' if there are none.}
+One change was made before the tag and before any confirmatory run. On 9 October 2026 the scope was fixed to one Apple M2 Max laptop: ladders up to 8B with LoRA up to 4B, GGUF quantization through llama.cpp in place of bitsandbytes, reasoning budgets of 256 tokens, local decision models only and ablations of 50 episodes, with everything else moved to future work, because the study has no GPU budget. \todo{Copy any later deviations from docs/preregistration.md (date, change, reason) and list every excluded cell with the reason recorded in run\_manifest.json; write ``none'' if there are none.}
 
 \section{Compute budget}
 \label{app:compute}
 
-The figures in this appendix are planning estimates from \texttt{docs/compute\_budget.md} and from \texttt{deadeye estimate}, not measurements. \todo{Replace them with measured GPU-hours per configuration, summed from eval\_time\_s and prepare\_time\_s in summary.json.}
+Every configuration runs on one Apple M2 Max laptop with 32~GB of memory. The times in this appendix are planning estimates, not measurements. The pilot measures the latency per decision on the laptop, \result{[seconds per decision by size and method, from the pilot]}, and the estimates will be replaced by the measured times. \todo{Replace Table~\ref{tab:compute} with measured laptop-hours per configuration, summed from eval\_time\_s and prepare\_time\_s in summary.json.}
 
 \begin{table}[h]
 \centering\small
-\caption{Planning estimates of seconds per decision, for prompts of 300 to 600 tokens and answers of 1 to 16 tokens.}
+\caption{Planning estimates of laptop time per configuration, to be replaced by measured times.}
 \label{tab:compute}
-\begin{tabular}{@{}llll@{}}
+\begin{tabularx}{\linewidth}{@{}l X r@{}}
 \toprule
-Setting & \texttt{prompt\_score} & \texttt{prompt\_generate} (16 tokens) & probe embedding\\
+Configuration & What it runs & Laptop-hours\\
 \midrule
-135M to 360M, CPU (4 cores) & 0.15 to 0.4 & 0.3 to 0.8 & 0.1 to 0.3\\
-1.5B, CPU & 1 to 2 & 2 to 4 & 0.8 to 1.5\\
-1.5B, 24 GB GPU, bf16 & 0.03 & 0.08 & 0.02\\
-7B, 24 GB GPU, bf16 & 0.08 & 0.25 & 0.06\\
-14B, 24 GB GPU, bf16 & 0.15 & 0.5 & 0.12\\
-32B and 72B, 80 GB GPU, int4 & 0.4 and 0.9 & 1.5 and 3 & 0.3 and 0.7\\
+\texttt{pilot.yaml} & six small checkpoints, shortened tasks, seeds 5000 to 5019 & a few\\
+\texttt{mac\_main.yaml} & 28 checkpoints; generation, scoring, probe and feature probe; seven tasks & 150 to 200\\
+\texttt{mac\_lora.yaml} & LoRA on the 24 checkpoints of at most 4B, 40 training episodes & 50 to 80\\
+\texttt{mac\_free\_reply.yaml} & free reply on twelve instruct checkpoints, four tasks, 50 episodes & 30 to 40\\
+\texttt{ablations/*.yaml} & five blocks, 50 episodes per cell & about 100\\
+\texttt{decision\_models.yaml} & Kev, Laya and SemIf; the Qwen3.5 0.8B and 4B base checkpoints converted & about 10\\
+\texttt{mac\_controls.yaml} & Pythia and OLMo 2, if time allows & about 30\\
+\midrule
+Total & without the pilot and the controls & 340 to 430\\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{table}
 
-Chain-of-thought with 256 new tokens costs roughly ten times as much as direct generation, and thinking with up to 2048 tokens up to fifty times as much. LoRA training takes two to ten minutes per cell for a 7B model on one GPU and under a minute for models below 1B. In memory, bfloat16 weights need about 2 bytes per parameter and 4-bit weights about 0.6, plus a small key-value cache for these short prompts.
+The order of the runs is chosen so that stopping early still leaves usable results. The pilot comes first and is followed by the \texttt{prereg-v1} tag. The main sweep then runs overnight for two to three weeks, ladder by ladder in the order Qwen2.5, Qwen3, SmolLM2 and Gemma 3, so that a run stopped at any point leaves complete ladders behind it; the runner skips finished cells, so each night picks up where the last one stopped. LoRA, the free replies, the five ablation blocks and the decision models follow, and the controls come last, if time allows.
 
-Counted with \texttt{deadeye estimate}, which rolls out the oracle on the first ten seeds of each task configuration, one model and method in the main sweep make 5000 decisions on the bandit, 3000 on the contextual bandit, 2000 on loan approval, about 660 on gridworld, 330 on tic-tac-toe and 480 on blackjack, about 11500 in all. Weaker policies take more steps on gridworld, so these counts are lower bounds there. With 26 model entries and five language-model method configurations (the feature probe runs once, without a model), the main sweep makes about 1.5 million language-model decisions before probe and LoRA training; \texttt{deadeye estimate}, which multiplies by all six method configurations, reports about 1.8 million. The planning estimate in \texttt{RESEARCH\_PLAN.md} is about 120 GPU-hours on one 80 GB GPU. The ablation configuration crosses 12 models, 16 method configurations and 12 task configurations, about 6.1 million decisions, roughly four times the main sweep and with the most expensive reasoning budgets. \todo{RESEARCH\_PLAN.md and docs/compute\_budget.md put the ablations at about the same cost as the sweep; trim the ablation cross product to the pre-registered contrasts or revise the budget.} The CPU pilot takes six to twelve hours on a laptop.
+Counted with \texttt{deadeye estimate}, which rolls out the oracle on the first ten seeds of each task configuration, one model and method in the main sweep make 5000 decisions on the bandit, 3000 on the contextual bandit, 2000 each on loan approval and support triage, about 660 on gridworld, 930 on tic-tac-toe and 3170 on blackjack, about 16800 in all. Weaker policies take more steps on gridworld, so these counts are lower bounds there. With 28 checkpoints and three language-model methods (the feature probe runs once, without a model), the main sweep makes about 1.4 million language-model decisions before probe training; \texttt{deadeye estimate}, which multiplies by all four method configurations, reports about 1.9 million. In the planning estimates, chain-of-thought or thinking with 256 new tokens costs roughly ten times as much per decision as a direct answer, which is why the reasoning block runs on three tasks only. LoRA training takes \result{[minutes per cell by model size on the laptop]}. In memory, 16-bit weights need about 2 bytes per parameter, about 16~GB at 8B, plus a small key-value cache for these short prompts.
 
 \section{Reproducibility checklist}
 \label{app:repro}
 
-The commands below rebuild every result in the paper from a fresh clone. Each step can be split across machines, since the runner skips cells whose summary already exists; \texttt{scripts/run\_sweep.sh} assigns models to GPUs.
+The commands below rebuild every result in the paper from a fresh clone on an Apple-silicon Mac; the same commands run on a CUDA machine or, slowly, on a CPU. Every step can be stopped and resumed, since the runner skips cells whose summary already exists, which is how the long configurations run over many nights.
 
 \begin{footnotesize}
 \begin{verbatim}
 git clone https://github.com/CaptiveON/DeadEye && cd DeadEye
 git checkout prereg-v1                       # frozen prompts, configs and analysis code
-python -m venv .venv && source .venv/bin/activate
-pip install torch --index-url https://download.pytorch.org/whl/cpu   # or a CUDA build
-pip install -e ".[hf,dev]" tabulate          # add ".[quant]" for int4/int8 on CUDA
+python3 -m venv .venv && source .venv/bin/activate
+pip install torch                            # macOS arm64 wheels include Metal (MPS)
+pip install -e ".[hf,dev]" tabulate
 pytest -q                                    # unit and integration tests, no downloads
 deadeye smoke                                # every task and method, mock and tiny random model
 deadeye show-prompt gridworld --seed 3 --cot --few-shot 2
-deadeye estimate configs/sweep_gpu.yaml --seconds-per-decision 0.3
-deadeye run configs/pilot_cpu.yaml           # Phase 1 pilot
-deadeye run configs/sweep_gpu.yaml           # main sweep; split with --only-model
-deadeye run configs/sweep_controls.yaml      # Pythia and OLMo 2 controls
-deadeye run configs/ablations/quantisation.yaml   # one block at a time: quantisation,
-                                                 # prompting, thinking, adaptation, tasks
-deadeye report results/sweep_gpu --out report/sweep_gpu
-deadeye compare results/sweep_gpu \
+deadeye estimate configs/mac_main.yaml --seconds-per-decision 0.5
+deadeye run configs/pilot.yaml               # pilot, seeds 5000-5019; then tag prereg-v1
+caffeinate -i deadeye run configs/mac_main.yaml   # main sweep, resumable
+deadeye run configs/mac_lora.yaml            # LoRA on the checkpoints of at most 4B
+deadeye run configs/mac_free_reply.yaml      # free replies: 12 checkpoints, 4 tasks
+deadeye run configs/ablations/prompting.yaml # then each other file in configs/ablations/;
+                                             # quantisation.yaml needs llama-server running
+deadeye run configs/decision_models.yaml     # with Kev, Laya and SemIf running locally
+deadeye run configs/mac_controls.yaml        # optional: Pythia and OLMo 2
+deadeye report results/mac_main --out report/mac_main
+deadeye compare results/mac_main \
     --pair "loan:Qwen__Qwen2.5-1.5B-Instruct/prompt_score vs loan:Qwen__Qwen2.5-1.5B-Instruct/prompt_generate"
 cd paper && make assets && make              # regenerate tables and figures, build the PDF
 \end{verbatim}
@@ -182,9 +189,11 @@ cd paper && make assets && make              # regenerate tables and figures, bu
 
 \begin{itemize}
   \item \textbf{Code and license.} The harness, configurations, prompts and analysis code are released under Apache-2.0; a Dockerfile builds a CPU image with the harness installed, whose entry point is the \texttt{deadeye} command.
+  \item \textbf{Hardware.} One Apple M2 Max with 32~GB of unified memory, PyTorch's Metal backend and 16-bit weights; llama.cpp with its Metal backend for the GGUF files of the quantization block. \todo{Hardware and library versions as in Section~\ref{sec:setup:hw}.}
+  \item \textbf{Access.} The Gemma 3 checkpoints are gated behind their terms of use, which must be accepted on the Hugging Face hub before the main sweep. The quantization block needs the GGUF files and one llama.cpp server per file, and the decision-model comparison needs Kev's local server, the Laya package and SemIf running on the same machine.
   \item \textbf{Tests.} \texttt{pytest} checks that oracles return legal actions and episodes terminate, that a seed reproduces its instance, and that the oracle beats the random policy on every task. It checks the gridworld oracle against shortest paths; that the tic-tac-toe oracle never loses to the minimax opponent and that expectimax does at least as well as minimax against the random one; the blackjack table on known hands; and that the dealer's cards do not depend on the player's hits. On the model side it checks exact scoring against a manual log-probability computation, including labels that are token prefixes of one another, that greedy generation is deterministic and ignores checkpoint repetition penalties, that hidden states differ by layer, that LoRA training changes the model, and that base checkpoints are rendered without a chat template. It also covers the parser on realistic outputs, the prompt structure, the illegal-action policies and the rule that fallback actions never count as agreement, the rejection of overlapping training and evaluation seeds, the selection of training variants, the runner end to end, and the report on smoke-test results.
-  \item \textbf{Determinism.} Instances, reward tables and card streams are fixed by the seed; greedy decoding, scoring and probes reproduce exactly on the same hardware and library versions.
-  \item \textbf{Provenance.} Every cell's \texttt{summary.json} records the model and method specification, precision, parameter count, seeds and timings, and \texttt{run\_manifest.json} the configuration and library versions (Section~\ref{sec:bench:logs}). \todo{Hardware and library versions as in Section~\ref{sec:setup:hw}.}
+  \item \textbf{Determinism.} Instances, reward tables and card streams are fixed by the seed. Greedy decoding, scoring and probes involve no sampling and should reproduce on the same machine and library versions, up to the numerical nondeterminism of the Metal kernels (Section~\ref{sec:setup:hw}).
+  \item \textbf{Provenance.} Every cell's \texttt{summary.json} records the model and method specification, precision, parameter count, seeds and timings, and \texttt{run\_manifest.json} the configuration, the platform and the library versions (Section~\ref{sec:bench:logs}).
   \item \textbf{Released data.} \texttt{summary.json} and \texttt{episodes.jsonl} for every cell, the per-decision \texttt{steps.jsonl} as an archive, and the generated report. \todo{Archive DOI.}
   \item \textbf{Exclusions and deviations.} Listed in Appendix~\ref{app:prereg}.
 \end{itemize}
@@ -192,11 +201,11 @@ cd paper && make assets && make              # regenerate tables and figures, bu
 \section{Model ladders: verified repository identifiers}
 \label{app:ladders}
 
-Table~\ref{tab:repoids} lists the Hugging Face repository identifiers that \texttt{docs/model\_ladders.md} records as verified, for the six ladders we use; an identifier counts as verified when it was seen exactly in an official listing. Cells marked ``not verified'' are configured checkpoints whose identifiers follow the family's naming pattern but have not been confirmed. Qwen3 also has separately trained instruct and thinking checkpoints at 4B, \texttt{Qwen/Qwen3-4B-Instruct-2507} and \texttt{Qwen/Qwen3-4B-Thinking-2507}, both verified, which offer a second contrast for H7. \todo{Verify the remaining identifiers before the sweep: Qwen2.5 1.5B and 7B base, Qwen2.5 14B and 32B Instruct, the Qwen3 0.6B, 1.7B, 4B and 14B post-trained checkpoints, SmolLM2 1.7B Instruct and the SmolLM2 360M base used in the pilot, and the Gemma 3 270M and 12B instruction-tuned checkpoints. configs/models.yaml marks several of these as verified, which disagrees with docs/model\_ladders.md.}
+Table~\ref{tab:repoids} lists the Hugging Face repository identifiers of the checkpoints in this study as \texttt{docs/model\_ladders.md} records them; an identifier counts as verified when it was seen exactly in an official listing. Cells marked ``not verified'' are configured checkpoints whose identifiers follow the family's naming pattern but have not been confirmed. The decision-model comparison adds the Qwen3.5 0.8B and 4B base checkpoints, \texttt{Qwen/Qwen3.5-0.8B-Base} and \texttt{Qwen/Qwen3.5-4B-Base}, neither of them verified yet. Qwen3 also has separately trained instruct and thinking checkpoints at 4B, \texttt{Qwen/Qwen3-4B-Instruct-2507} and \texttt{Qwen/Qwen3-4B-Thinking-2507}, both verified, which offer a second contrast for H7 that this study does not run. \todo{Verify the remaining identifiers before the sweep: the Qwen2.5 1.5B and 7B base checkpoints, the Qwen3 0.6B, 1.7B and 4B base and post-trained checkpoints, the SmolLM2 135M and 360M base and 1.7B Instruct checkpoints, the two Gemma 3 270M checkpoints and the two Qwen3.5 bases.}
 
 \begin{table}[h]
 \centering\footnotesize
-\caption{Verified repository identifiers. For Pythia, the non-deduplicated identifiers (without \texttt{-deduped}) are verified as well; Pythia has no instruct checkpoints, and Qwen3 has no 32B base checkpoint.}
+\caption{Verified repository identifiers of the checkpoints in this study. For Pythia, the non-deduplicated identifiers (without \texttt{-deduped}) are verified as well, and Pythia has no instruct checkpoints. The larger rungs (Qwen2.5 14B to 72B, Qwen3 14B and 32B, Gemma 3 12B and 27B, Pythia 6.9B and 12B, OLMo 2 13B and 32B) are future work (Section~\ref{sec:future}); \texttt{docs/model\_ladders.md} lists their identifiers.}
 \label{tab:repoids}
 \begin{tabularx}{\linewidth}{@{}l l X X@{}}
 \toprule
@@ -206,23 +215,17 @@ Qwen2.5 & 0.5B & \texttt{Qwen/Qwen2.5-0.5B} & \texttt{Qwen/Qwen2.5-0.5B-Instruct
  & 1.5B & not verified & \texttt{Qwen/Qwen2.5-1.5B-Instruct}\\
  & 3B & \texttt{Qwen/Qwen2.5-3B} & \texttt{Qwen/Qwen2.5-3B-Instruct}\\
  & 7B & not verified & \texttt{Qwen/Qwen2.5-7B-Instruct}\\
- & 14B & \texttt{Qwen/Qwen2.5-14B} & not verified\\
- & 32B & \texttt{Qwen/Qwen2.5-32B} & not verified\\
- & 72B & \texttt{Qwen/Qwen2.5-72B} & \texttt{Qwen/Qwen2.5-72B-Instruct}\\
 \midrule
 Qwen3 & 0.6B, 1.7B, 4B & not verified & not verified\\
  & 8B & \texttt{Qwen/Qwen3-8B-Base} & \texttt{Qwen/Qwen3-8B}\\
- & 14B & \texttt{Qwen/Qwen3-14B-Base} & not verified\\
- & 32B & none released & \texttt{Qwen/Qwen3-32B}\\
 \midrule
 SmolLM2 & 135M & not verified & \texttt{HuggingFaceTB/SmolLM2-135M-Instruct}\\
  & 360M & not verified & \texttt{HuggingFaceTB/SmolLM2-360M-Instruct}\\
  & 1.7B & \texttt{HuggingFaceTB/SmolLM2-1.7B} & not verified\\
 \midrule
-Gemma 3 & 270M, 12B & not verified & not verified\\
+Gemma 3 & 270M & not verified & not verified\\
  & 1B & \texttt{google/gemma-3-1b-pt} & \texttt{google/gemma-3-1b-it}\\
  & 4B & \texttt{google/gemma-3-4b-pt} & \texttt{google/gemma-3-4b-it}\\
- & 27B & not verified & \texttt{google/gemma-3-27b-it}\\
 \midrule
 Pythia & 70M & \texttt{EleutherAI/pythia-70m-deduped} & \\
  & 160M & \texttt{EleutherAI/pythia-160m-deduped} & \\
@@ -230,13 +233,9 @@ Pythia & 70M & \texttt{EleutherAI/pythia-70m-deduped} & \\
  & 1B & \texttt{EleutherAI/pythia-1b-deduped} & \\
  & 1.4B & \texttt{EleutherAI/pythia-1.4b-deduped} & \\
  & 2.8B & \texttt{EleutherAI/pythia-2.8b-deduped} & \\
- & 6.9B & \texttt{EleutherAI/pythia-6.9b-deduped} & \\
- & 12B & \texttt{EleutherAI/pythia-12b-deduped} & \\
 \midrule
 OLMo 2 & 1B & \texttt{allenai/OLMo-2-0425-1B} & \texttt{allenai/OLMo-2-0425-1B-Instruct}\\
  & 7B & \texttt{allenai/OLMo-2-1124-7B} & \texttt{allenai/OLMo-2-1124-7B-Instruct}\\
- & 13B & \texttt{allenai/OLMo-2-1124-13B} & \texttt{allenai/OLMo-2-1124-13B-Instruct}\\
- & 32B & \texttt{allenai/OLMo-2-0325-32B} & \texttt{allenai/OLMo-2-0325-32B-Instruct}\\
 \bottomrule
 \end{tabularx}
 \end{table}

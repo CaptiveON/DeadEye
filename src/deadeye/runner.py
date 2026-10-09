@@ -226,7 +226,8 @@ class Runner:
     def run(self) -> list[Path]:
         self.out.mkdir(parents=True, exist_ok=True)
         manifest = {"name": self.cfg.name, "started": datetime.now(timezone.utc).isoformat(), "deadeye": __version__,
-                    "python": platform.python_version(), "platform": platform.platform(), "config": self.cfg.raw,
+                    "python": platform.python_version(), "platform": platform.platform(), "machine": platform.machine(),
+                    "chip": _chip_name(), "config": self.cfg.raw,
                     "cells": [list(c.path_parts) for c in self.cells()]}
         try:
             import torch
@@ -338,6 +339,31 @@ class Runner:
         return cdir
 
 
+def _chip_name() -> str:
+    """Human-readable processor name (Apple chip on macOS, CPU brand on Linux); best effort."""
+    import subprocess
+    try:
+        if platform.system() == "Darwin":
+            return subprocess.run(["sysctl", "-n", "machdep.cpu.brand_string"], capture_output=True, text=True, timeout=5).stdout.strip()
+        with open("/proc/cpuinfo") as f:
+            for line in f:
+                if line.startswith("model name"):
+                    return line.split(":", 1)[1].strip()
+    except Exception:
+        pass
+    return platform.processor() or "unknown"
+
+
+def peak_rss_mb() -> float:
+    """Peak resident memory of this process in MB (ru_maxrss is bytes on macOS, kilobytes on Linux)."""
+    try:
+        import resource
+        rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+        return rss / 1e6 if platform.system() == "Darwin" else rss / 1e3
+    except Exception:
+        return float("nan")
+
+
 def required_capabilities(name: str) -> set[str]:
     return {"prompt_free": {"generate"}, "prompt_generate": {"generate"}, "prompt_score": {"score"}, "probe": {"embed"},
             "lora_sft": {"train"}}.get(name, set())
@@ -383,7 +409,8 @@ def summarize(cell: Cell, episodes: list[dict[str, Any]], model: LanguageModel |
         "prompt_tokens_per_decision": float(sum(e["prompt_tokens"] for e in episodes) / max(1, n_steps)),
         "completion_tokens_per_decision": float(sum(e["completion_tokens"] for e in episodes) / max(1, n_steps)),
         **means, **stds, "calibration": calibration,
-        "prepare_stats": prepare_stats, "prepare_time_s": prep_time, "eval_time_s": eval_time,
+        "prepare_stats": prepare_stats, "prepare_time_s": prep_time, "eval_time_s": eval_time, "peak_rss_mb": peak_rss_mb(),
+        "device": (model.info.extra.get("device") if model is not None else None),
         "illegal_action_policy": cfg.illegal_action, "run_name": cfg.name, "deadeye": __version__,
         "finished": datetime.now(timezone.utc).isoformat(),
     }

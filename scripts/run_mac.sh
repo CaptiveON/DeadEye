@@ -16,7 +16,7 @@ case "$stage" in
   lora|all)      run configs/mac_lora.yaml ;;&
   free|all)      run configs/mac_free_reply.yaml ;;&
   controls|all)  run configs/mac_controls.yaml ;;&
-  ablations|all) for b in prompting reasoning adaptation tasks tasks_lora; do run "configs/ablations/$b.yaml"; done ;;&
+  ablations|all) for b in prompting reasoning adaptation adaptation_lora100 tasks tasks_lora; do run "configs/ablations/$b.yaml"; done ;;&
   decision|all)  run configs/decision_models.yaml ;;&
   quant)         run configs/ablations/quantisation.yaml ;;   # needs the llama.cpp servers running first
 esac

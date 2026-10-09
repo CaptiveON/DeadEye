@@ -145,7 +145,8 @@ def test_scale_slopes_and_bare_latex(tmp_path):
     slopes = res["slopes"]
     assert set(slopes["env_key"]) >= {"bandit", "blackjack", "__mean__"} and (slopes["n_models"] == 3).all()
     assert (slopes["slope_ci_lo"] <= slopes["slope"]).all() and (slopes["slope"] <= slopes["slope_ci_hi"]).all()
-    r = slope_ratio(slopes, "mock", "bandit", "prompt_score", "prompt_generate")
+    assert set(slopes["instruct"]) == {"instruct"}  # the mock reports itself as an instruct model
+    r = slope_ratio(slopes, "mock", "bandit", "prompt_score", "prompt_generate", instruct="instruct")
     assert set(r) == {"ratio", "ci_lo", "ci_hi"}
     assert (tmp_path / "rep" / "slopes.csv").exists() and (tmp_path / "rep" / "tables" / "slopes.tex").exists()
     tex = (tmp_path / "rep" / "tables" / "prompt_score.tex").read_text()

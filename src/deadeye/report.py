@@ -245,13 +245,23 @@ def scale_slopes(cells: pd.DataFrame, episodes: pd.DataFrame, n_boot: int = 1000
         ss_tot = float(np.sum((y - y.mean()) ** 2))
         return b, a, (1 - ss_res / ss_tot) if ss_tot > 0 else float("nan")
 
-    groups = list(mc.groupby(["family", "method_key", "env_key"], dropna=False))
+    def _kind(v):
+        try:
+            if v in (True, "True", "true", 1):
+                return "instruct"
+            if v in (False, "False", "false", 0):
+                return "base"
+        except Exception:
+            pass
+        return "unknown"
+    mc["instruct"] = mc["instruct"].map(_kind)
+    groups = list(mc.groupby(["family", "instruct", "method_key", "env_key"], dropna=False))
     # cross-task mean per model
-    for (fam, mk), g in mc.groupby(["family", "method_key"], dropna=False):
+    for (fam, inst, mk), g in mc.groupby(["family", "instruct", "method_key"], dropna=False):
         if g["env_key"].nunique() < 2:
             continue
-        groups.append(((fam, mk, "__mean__"), g))
-    for (fam, mk, ek), g in groups:
+        groups.append(((fam, inst, mk, "__mean__"), g))
+    for (fam, inst, mk, ek), g in groups:
         if ek == "__mean__":
             per_model = g.groupby(["model_key", "params"])["cell_id"].apply(list).reset_index()
         else:
@@ -276,17 +286,19 @@ def scale_slopes(cells: pd.DataFrame, episodes: pd.DataFrame, n_boot: int = 1000
                 yb.append(np.nanmean(vals))
             boots.append(fit(x, np.array(yb))[0])
         boots = np.array(boots)
-        rows.append({"family": fam, "method_key": mk, "env_key": ek, "n_models": len(per_model),
+        rows.append({"family": fam, "instruct": inst, "method_key": mk, "env_key": ek, "n_models": len(per_model),
                      "params_min": float(per_model["params"].min()), "params_max": float(per_model["params"].max()),
                      "slope": b, "slope_ci_lo": float(np.percentile(boots, 2.5)), "slope_ci_hi": float(np.percentile(boots, 97.5)),
                      "intercept": a, "r2": r2, "_boot": boots})
     return pd.DataFrame(rows)
 
 
-def slope_ratio(slopes: pd.DataFrame, family: str, env_key: str, method_a: str, method_b: str) -> dict[str, float]:
-    """Ratio slope_a / slope_b with a bootstrap CI (independent resamples), e.g. prompt_score over prompt_generate."""
-    sa = slopes[(slopes["family"] == family) & (slopes["env_key"] == env_key) & (slopes["method_key"] == method_a)]
-    sb = slopes[(slopes["family"] == family) & (slopes["env_key"] == env_key) & (slopes["method_key"] == method_b)]
+def slope_ratio(slopes: pd.DataFrame, family: str, env_key: str, method_a: str, method_b: str, instruct: str = "instruct") -> dict[str, float]:
+    """Ratio slope_a / slope_b with a bootstrap CI (independent resamples), e.g. prompt_score over prompt_generate,
+    within one family and one checkpoint type ("instruct" or "base")."""
+    sel = (slopes["family"] == family) & (slopes["env_key"] == env_key) & (slopes["instruct"] == instruct)
+    sa = slopes[sel & (slopes["method_key"] == method_a)]
+    sb = slopes[sel & (slopes["method_key"] == method_b)]
     if sa.empty or sb.empty:
         return {}
     ba, bb = sa["_boot"].iloc[0], sb["_boot"].iloc[0]
@@ -570,10 +582,11 @@ def build_report(result_dirs: list[str | Path], out_dir: str | Path, paper_dir: 
     if len(slopes):
         slopes.drop(columns=["_boot"]).to_csv(out / "slopes.csv", index=False)
         st = slopes.drop(columns=["_boot", "intercept"]).copy()
+        st = st[st["n_models"] >= 3]
         st["slope"] = st.apply(lambda r: f"{r['slope']:+.3f} [{r['slope_ci_lo']:+.3f}, {r['slope_ci_hi']:+.3f}]", axis=1)
         st = st.drop(columns=["slope_ci_lo", "slope_ci_hi"])
         (out / "tables" / "slopes.tex").write_text(st.to_latex(index=False, escape=True, float_format="%.2f"))
-        tables["scale_slopes"] = st.set_index(["family", "method_key", "env_key"])
+        tables["scale_slopes"] = st.set_index(["family", "instruct", "method_key", "env_key"])
     (out / "tables.md").write_text(tables_to_markdown(tables))
     tex = tables_to_latex({k: v for k, v in tables.items() if k != "scale_slopes"})
     for name, s_ in tex.items():
