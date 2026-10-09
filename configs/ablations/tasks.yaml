@@ -1,8 +1,9 @@
-# Ablation block: task structure. Observation format and action-space size (bandit), adversary strength (tic-tac-toe),
-# planning depth (gridworld), and the out-of-distribution loan variants (H3; adaptation methods train in distribution).
+# Ablation block: task structure (50 episodes). Observation format, action-space size and gap (bandit), adversary
+# strength (tic-tac-toe), planning depth (gridworld), ticket count (support), and the out-of-distribution loan
+# variants (H3; adaptation methods train in distribution through train_params).
 name: ablations_tasks
 output_dir: results/ablations/tasks
-seeds: {start: 0, n: 100}
+seeds: {start: 0, n: 50}
 train_seeds: {start: 100000, n: 100}
 envs:
   - {name: bandit, params: {n_arms: 5, horizon: 50, gap: 0.2}}
@@ -14,18 +15,17 @@ envs:
   - {name: loan, params: {n_applicants: 20, shift: sign_flip}, train_params: {n_applicants: 20, shift: none}, label: loan_sign_flip}
   - {name: gridworld, params: {size: 6}}
   - {name: gridworld, params: {size: 9, n_walls: 16}, label: gridworld_large}
-  - {name: tictactoe, params: {opponent: random}, n_episodes: 300}
-  - {name: tictactoe, params: {opponent: minimax}, n_episodes: 300, label: tictactoe_minimax}
+  - {name: tictactoe, params: {opponent: random}, n_episodes: 150}
+  - {name: tictactoe, params: {opponent: minimax}, n_episodes: 150, label: tictactoe_minimax}
   - {name: support, params: {n_tickets: 20}}
-  - {name: support, params: {n_tickets: 40}, label: support_long}                                              # more tickets per episode
+  - {name: support, params: {n_tickets: 40}, label: support_long}
 models:
   - {backend: hf, id: Qwen/Qwen2.5-1.5B-Instruct}
+  - {backend: hf, id: Qwen/Qwen2.5-3B-Instruct}
   - {backend: hf, id: Qwen/Qwen2.5-7B-Instruct}
-  - {backend: hf, id: Qwen/Qwen2.5-14B-Instruct}
 methods:
   - {name: prompt_generate, params: {max_new_tokens: 16}}
   - {name: prompt_score}
   - {name: probe, params: {layer: mid, n_train_episodes: 100}}
   - {name: feature_probe, params: {n_train_episodes: 100}}
-  - {name: lora_sft, params: {n_train_episodes: 100, lora: {r: 16, alpha: 32, epochs: 2, lr: 0.0002, batch_size: 8}}}
 baselines: [random, oracle, ucb1]

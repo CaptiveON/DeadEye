@@ -16,14 +16,16 @@ decision. Every table and figure in the paper is produced by `deadeye report` fr
 - Peer-testing guide: [`docs/peer_testing.md`](docs/peer_testing.md)
 - Literature review and verified bibliography: [`docs/literature_review.md`](docs/literature_review.md), [`paper/refs.bib`](paper/refs.bib)
 - Model ladders: [`docs/model_ladders.md`](docs/model_ladders.md), [`configs/models.yaml`](configs/models.yaml)
-- The two comparisons (small vs large open-weight models; small open-weight conversions vs Kev, Clef, Laya, Perplexity's decider, SemIf and Jev): section 7 of the plan and [`configs/decision_models.yaml`](configs/decision_models.yaml)
+- The two comparisons (small vs larger open-weight models within four ladders to 8B; small conversions vs the decision models Kev, Laya and SemIf): section 7 of the plan and [`configs/decision_models.yaml`](configs/decision_models.yaml)
+- Everything the laptop excludes: [`docs/future_work.md`](docs/future_work.md)
+- Step by step from here to submission: [`docs/before_you_publish.md`](docs/before_you_publish.md)
 
 ## Install
 
 ```bash
 python -m venv .venv && source .venv/bin/activate
-pip install torch --index-url https://download.pytorch.org/whl/cpu   # CPU; or your CUDA wheel
-pip install -e ".[hf,dev]" tabulate                                  # add ".[quant]" for int4/int8 on CUDA
+pip install torch                      # macOS wheel includes Metal; Linux: add --index-url https://download.pytorch.org/whl/cpu or your CUDA wheel
+pip install -e ".[hf,dev]" tabulate    # add ".[quant]" for int4/int8 on CUDA only
 ```
 
 ## Try it in one minute (no downloads)
@@ -33,16 +35,18 @@ pytest -q          # unit + integration tests with a tiny randomly initialised m
 deadeye smoke      # every environment x every method with a mock and the tiny model -> HTML report
 ```
 
-## Run a real experiment
+## Run the study on a Mac (or any machine)
+
+The whole study is designed for one Apple M2 Max with 32 GB (PyTorch's Metal backend; CUDA and CPU also work).
 
 ```bash
 deadeye list-envs
 deadeye list-methods
 deadeye show-prompt bandit --seed 0 --steps 5        # see exactly what the model sees
-deadeye estimate configs/pilot_cpu.yaml              # decisions, tokens, wall-clock
-deadeye run configs/pilot_cpu.yaml                   # resumable; --only-model/--only-env/--only-method to split
-deadeye report results/pilot_cpu --out report/pilot_cpu --paper-dir paper
-deadeye compare results/pilot_cpu --pair "loan:Qwen__Qwen2.5-0.5B-Instruct/prompt_score vs loan:Qwen__Qwen2.5-0.5B-Instruct/prompt_generate"
+deadeye estimate configs/mac_main.yaml --seconds-per-decision 0.4   # decisions, tokens, wall-clock
+scripts/run_mac.sh pilot                             # then main, lora, free, controls, ablations, quant, decision
+deadeye report results/pilot --out report/pilot --paper-dir paper
+deadeye compare results/pilot --pair "loan:Qwen__Qwen2.5-0.5B-Instruct/prompt_score vs loan:Qwen__Qwen2.5-0.5B-Instruct/prompt_generate"
 ```
 
 ## What is in the box

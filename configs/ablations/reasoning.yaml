@@ -1,0 +1,26 @@
+# Ablation block: reasoning budget (H7) on the three tasks where planning or rule application could benefit.
+# Chain of thought (256 tokens) on Qwen2.5-Instruct, and Qwen3 with thinking on (256) against off (16).
+# Long budgets (2048 tokens) are future work: too slow on a laptop. 50 episodes.
+name: ablations_reasoning
+output_dir: results/ablations/reasoning
+seeds: {start: 0, n: 50}
+train_seeds: {start: 100000, n: 100}
+envs:
+  - {name: gridworld, params: {size: 6}}
+  - {name: tictactoe, params: {opponent: random}, n_episodes: 150}
+  - {name: support, params: {n_tickets: 20}}
+models:
+  - {backend: hf, id: Qwen/Qwen2.5-1.5B-Instruct}
+  - {backend: hf, id: Qwen/Qwen2.5-3B-Instruct}
+  - {backend: hf, id: Qwen/Qwen2.5-7B-Instruct}
+  - {backend: hf, id: Qwen/Qwen3-1.7B, chat_template_kwargs: {enable_thinking: false}, label: Qwen3-1.7B-nothink}
+  - {backend: hf, id: Qwen/Qwen3-1.7B, chat_template_kwargs: {enable_thinking: true}, label: Qwen3-1.7B-think}
+  - {backend: hf, id: Qwen/Qwen3-4B, chat_template_kwargs: {enable_thinking: false}, label: Qwen3-4B-nothink}
+  - {backend: hf, id: Qwen/Qwen3-4B, chat_template_kwargs: {enable_thinking: true}, label: Qwen3-4B-think}
+  - {backend: hf, id: Qwen/Qwen3-8B, chat_template_kwargs: {enable_thinking: false}, label: Qwen3-8B-nothink}
+  - {backend: hf, id: Qwen/Qwen3-8B, chat_template_kwargs: {enable_thinking: true}, label: Qwen3-8B-think}
+methods:
+  - {name: prompt_generate, params: {max_new_tokens: 16}}
+  - {name: prompt_generate, params: {max_new_tokens: 256, cot: true}, label: gen_cot256}
+  - {name: prompt_generate, params: {max_new_tokens: 256}, label: gen_budget256}      # for the thinking checkpoints
+baselines: [random, oracle]

@@ -1,9 +1,7 @@
-# Control ladders for the scale study (run after configs/sweep_gpu.yaml):
-#  - Pythia: identical data and data order across eight base-only sizes (the cleanest pure-parameter control; expect
-#    weak prompting, informative probe/score/LoRA curves).
-#  - OLMo 2: fully open data + recipe with base and instruct at four sizes (open replication; contamination checks).
-name: sweep_controls
-output_dir: results/sweep_controls
+# Control ladders (optional; run when time allows): Pythia, the pure-parameter control with identical data at every
+# size, and OLMo 2, fully open data and recipe. Pythia 6.9B/12B and OLMo 2 13B/32B are future work.
+name: mac_controls
+output_dir: results/mac_controls
 seeds: {start: 0, n: 100}
 train_seeds: {start: 100000, n: 100}
 envs:
@@ -21,19 +19,13 @@ models:
   - {backend: hf, id: EleutherAI/pythia-1b-deduped}
   - {backend: hf, id: EleutherAI/pythia-1.4b-deduped}
   - {backend: hf, id: EleutherAI/pythia-2.8b-deduped}
-  - {backend: hf, id: EleutherAI/pythia-6.9b-deduped}
-  - {backend: hf, id: EleutherAI/pythia-12b-deduped}
   - {backend: hf, id: allenai/OLMo-2-0425-1B}
   - {backend: hf, id: allenai/OLMo-2-0425-1B-Instruct}
   - {backend: hf, id: allenai/OLMo-2-1124-7B}
   - {backend: hf, id: allenai/OLMo-2-1124-7B-Instruct}
-  - {backend: hf, id: allenai/OLMo-2-1124-13B}
-  - {backend: hf, id: allenai/OLMo-2-1124-13B-Instruct}
-  - {backend: hf, id: allenai/OLMo-2-0325-32B-Instruct, quantization: int4}
 methods:
   - {name: prompt_generate, params: {max_new_tokens: 16}}
   - {name: prompt_score}
   - {name: probe, params: {layer: mid, n_train_episodes: 100}}
   - {name: feature_probe, params: {n_train_episodes: 100}}
-  - {name: lora_sft, params: {n_train_episodes: 100, infer: score, lora: {r: 16, alpha: 32, epochs: 2, lr: 0.0002, batch_size: 8}}}
 baselines: [random, oracle, ucb1]

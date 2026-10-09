@@ -153,3 +153,50 @@ def test_registry_renders_declared_base_models_plainly(tiny_model_path):
     assert forced.render(MSGS).endswith("<|assistant|>\n")
     inst = load_model({"backend": "hf", "id": path})
     assert inst.render(MSGS).endswith("<|assistant|>\n") and inst.info.extra["chat_template"] is True
+
+
+def test_device_and_dtype_selection():
+    import types
+    from deadeye.models.hf_backend import default_dtype, select_device
+
+    class _Cuda:
+        def __init__(self, ok):
+            self.ok = ok
+
+        def is_available(self):
+            return self.ok
+
+    def fake_torch(cuda: bool, mps: bool | None):
+        t = types.SimpleNamespace(cuda=_Cuda(cuda), bfloat16="bf16", float16="fp16", float32="fp32")
+        t.backends = types.SimpleNamespace(mps=None if mps is None else types.SimpleNamespace(is_available=lambda: mps))
+        return t
+
+    assert select_device("auto", fake_torch(True, True)) == "cuda"
+    assert select_device("auto", fake_torch(False, True)) == "mps"
+    assert select_device("auto", fake_torch(False, False)) == "cpu"
+    assert select_device("auto", fake_torch(False, None)) == "cpu"
+    assert select_device("cpu", fake_torch(True, True)) == "cpu"
+    assert default_dtype("cuda", fake_torch(True, True)) == "bf16"
+    assert default_dtype("cpu", fake_torch(False, False)) == "fp32"
+
+    class _Ones:
+        def __init__(self, fail):
+            self.fail = fail
+
+        def __call__(self, *a, **k):
+            if self.fail:
+                raise RuntimeError("no bf16 on this device")
+            return types.SimpleNamespace(__mul__=lambda s, o: s, sum=lambda: types.SimpleNamespace(item=lambda: 4.0))
+
+    t = fake_torch(False, True)
+    t.ones = _Ones(fail=True)
+    assert default_dtype("mps", t) == "fp16"
+
+
+def test_quantisation_refused_off_cuda(tiny_model_path):
+    import torch
+    from deadeye.models.hf_backend import HFModel
+    if torch.cuda.is_available():
+        pytest.skip("CUDA present")
+    with pytest.raises(ValueError):
+        HFModel(str(tiny_model_path), quantization="int4")

@@ -1,25 +1,24 @@
-# Ablation block: prompt and decoding factors on three bf16 sizes: demonstrations, chain of thought, temperature,
-# action encoding, history window, length normalisation.
+# Ablation block: prompt and decoding factors on three sizes (50 episodes). Demonstrations, action encoding, temperature,
+# history window, length normalisation, few-shot scoring. Chain of thought is in reasoning.yaml.
 name: ablations_prompting
 output_dir: results/ablations/prompting
-seeds: {start: 0, n: 100}
+seeds: {start: 0, n: 50}
 train_seeds: {start: 100000, n: 100}
 envs:
   - {name: bandit, params: {n_arms: 5, horizon: 50, gap: 0.2}}
   - {name: contextual_bandit, params: {n_actions: 3, dim: 4, horizon: 30}}
   - {name: loan, params: {n_applicants: 20}}
   - {name: gridworld, params: {size: 6}}
-  - {name: tictactoe, params: {opponent: random}, n_episodes: 300}
-  - {name: blackjack, params: {hands_per_episode: 20}, n_episodes: 100}
+  - {name: tictactoe, params: {opponent: random}, n_episodes: 150}
+  - {name: blackjack, params: {hands_per_episode: 20}, n_episodes: 50}
   - {name: support, params: {n_tickets: 20}}
 models:
   - {backend: hf, id: Qwen/Qwen2.5-1.5B-Instruct}
+  - {backend: hf, id: Qwen/Qwen2.5-3B-Instruct}
   - {backend: hf, id: Qwen/Qwen2.5-7B-Instruct}
-  - {backend: hf, id: Qwen/Qwen2.5-14B-Instruct}
 methods:
   - {name: prompt_generate, params: {max_new_tokens: 16}}
   - {name: prompt_generate, params: {max_new_tokens: 16, few_shot: 3}, label: gen_fewshot3}
-  - {name: prompt_generate, params: {max_new_tokens: 256, cot: true}, label: gen_cot}
   - {name: prompt_generate, params: {max_new_tokens: 16, temperature: 0.7}, label: gen_temp0.7}
   - {name: prompt_generate, params: {max_new_tokens: 16, action_format: letter}, label: gen_letter}
   - {name: prompt_generate, params: {max_new_tokens: 16, history_window: 3}, label: gen_history3}

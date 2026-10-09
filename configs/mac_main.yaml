@@ -1,0 +1,57 @@
+# Main sweep on one Apple M2 Max (32 GB): four ladders, 135M to 8B, base and instruct at every rung, with the
+# four methods that need no training beyond a probe. 16-bit weights on the Metal backend (dtype auto).
+# Run order matters: the ladders are listed so that a stopped run still leaves complete ladders behind it.
+#   caffeinate -i deadeye run configs/mac_main.yaml        (resumable; ~150-200 laptop-hours in total, overnight runs)
+#   deadeye report results/mac_main --out report/mac_main --paper-dir paper
+name: mac_main
+output_dir: results/mac_main
+seeds: {start: 0, n: 100}
+train_seeds: {start: 100000, n: 100}
+illegal_action: random_fallback
+envs:
+  - {name: bandit, params: {n_arms: 5, horizon: 50, gap: 0.2}}
+  - {name: contextual_bandit, params: {n_actions: 3, dim: 4, horizon: 30}}
+  - {name: loan, params: {n_applicants: 20}}
+  - {name: gridworld, params: {size: 6}}
+  - {name: tictactoe, params: {opponent: random}, n_episodes: 300}
+  - {name: blackjack, params: {hands_per_episode: 20}, n_episodes: 100}
+  - {name: support, params: {n_tickets: 20}}
+models:
+  # --- Qwen2.5 (run first: four rungs, base + instruct) ---
+  - {backend: hf, id: Qwen/Qwen2.5-0.5B}
+  - {backend: hf, id: Qwen/Qwen2.5-0.5B-Instruct}
+  - {backend: hf, id: Qwen/Qwen2.5-1.5B}
+  - {backend: hf, id: Qwen/Qwen2.5-1.5B-Instruct}
+  - {backend: hf, id: Qwen/Qwen2.5-3B}
+  - {backend: hf, id: Qwen/Qwen2.5-3B-Instruct}
+  - {backend: hf, id: Qwen/Qwen2.5-7B}
+  - {backend: hf, id: Qwen/Qwen2.5-7B-Instruct}
+  # --- Qwen3 (base + post-trained with thinking off) ---
+  - {backend: hf, id: Qwen/Qwen3-0.6B-Base}
+  - {backend: hf, id: Qwen/Qwen3-0.6B, chat_template_kwargs: {enable_thinking: false}}
+  - {backend: hf, id: Qwen/Qwen3-1.7B-Base}
+  - {backend: hf, id: Qwen/Qwen3-1.7B, chat_template_kwargs: {enable_thinking: false}}
+  - {backend: hf, id: Qwen/Qwen3-4B-Base}
+  - {backend: hf, id: Qwen/Qwen3-4B, chat_template_kwargs: {enable_thinking: false}}
+  - {backend: hf, id: Qwen/Qwen3-8B-Base}
+  - {backend: hf, id: Qwen/Qwen3-8B, chat_template_kwargs: {enable_thinking: false}}
+  # --- SmolLM2 ---
+  - {backend: hf, id: HuggingFaceTB/SmolLM2-135M}
+  - {backend: hf, id: HuggingFaceTB/SmolLM2-135M-Instruct}
+  - {backend: hf, id: HuggingFaceTB/SmolLM2-360M}
+  - {backend: hf, id: HuggingFaceTB/SmolLM2-360M-Instruct}
+  - {backend: hf, id: HuggingFaceTB/SmolLM2-1.7B}
+  - {backend: hf, id: HuggingFaceTB/SmolLM2-1.7B-Instruct}
+  # --- Gemma 3 (gated: accept the licence on the hub and log in) ---
+  - {backend: hf, id: google/gemma-3-270m}
+  - {backend: hf, id: google/gemma-3-270m-it}
+  - {backend: hf, id: google/gemma-3-1b-pt}
+  - {backend: hf, id: google/gemma-3-1b-it}
+  - {backend: hf, id: google/gemma-3-4b-pt}
+  - {backend: hf, id: google/gemma-3-4b-it}
+methods:
+  - {name: prompt_generate, params: {max_new_tokens: 16}}
+  - {name: prompt_score}
+  - {name: probe, params: {layer: mid, n_train_episodes: 100}}
+  - {name: feature_probe, params: {n_train_episodes: 100}}
+baselines: [random, oracle, ucb1]

@@ -8,7 +8,7 @@ The goal of this page is that someone who did not write the code can (a) verify 
 ```bash
 git clone https://github.com/CaptiveON/DeadEye && cd DeadEye
 python -m venv .venv && source .venv/bin/activate
-pip install torch --index-url https://download.pytorch.org/whl/cpu     # or your CUDA build
+pip install torch                      # macOS wheel includes Metal; on Linux add --index-url https://download.pytorch.org/whl/cpu
 pip install -e ".[hf,dev]" tabulate
 pytest -q                 # ~1-2 min: environments, parsing, runner, exact scoring, LoRA, report
 deadeye smoke             # ~30 s: mock + tiny random model through every env and method
@@ -23,9 +23,9 @@ Every number in the paper comes from a `summary.json` in a results directory wit
 produced it in `run_manifest.json`. To re-run one cell:
 
 ```bash
-deadeye run configs/sweep_gpu.yaml --only-env loan --only-model Qwen/Qwen2.5-1.5B-Instruct --only-method prompt_score --force
-deadeye report results/sweep_gpu --out report/check
-deadeye compare results/sweep_gpu --pair "loan:Qwen__Qwen2.5-1.5B-Instruct/prompt_score vs loan:Qwen__Qwen2.5-1.5B-Instruct/prompt_generate"
+deadeye run configs/mac_main.yaml --only-env loan --only-model Qwen/Qwen2.5-1.5B-Instruct --only-method prompt_score --force
+deadeye report results/mac_main --out report/check
+deadeye compare results/mac_main --pair "loan:Qwen__Qwen2.5-1.5B-Instruct/prompt_score vs loan:Qwen__Qwen2.5-1.5B-Instruct/prompt_generate"
 ```
 
 Greedy decoding and seeded instances make `prompt_score`, `probe` and `prompt_generate`

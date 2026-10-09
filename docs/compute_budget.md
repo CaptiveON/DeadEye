@@ -1,28 +1,30 @@
-# Compute budget
+# Compute budget (one Apple M2 Max, 32 GB)
 
-`deadeye estimate <config> --seconds-per-decision S` counts decisions from oracle rollouts and
-multiplies by models x methods. Use it after every config edit. Rules of thumb measured on the
-tiny model and typical hardware (prompts are 300-600 tokens, answers 1-16 tokens):
+The whole study runs on one laptop through PyTorch's Metal backend at 16-bit precision. The numbers below are
+estimates for planning; the pilot measures the real per-decision latency of every model (`latency_per_decision_s`
+in each `summary.json`), and `deadeye estimate <config> --seconds-per-decision <measured>` turns it into hours.
 
-| Setting | prompt_score (one forward, batched choices) | prompt_generate 16 tokens | embed (probe) |
+| Model size | Scoring or probe (one forward pass) | Generation, 16 tokens | Free reply, 96 tokens |
 |---|---|---|---|
-| 135M-360M, CPU (4 cores) | 0.15-0.4 s | 0.3-0.8 s | 0.1-0.3 s |
-| 1.5B, CPU | 1-2 s | 2-4 s | 0.8-1.5 s |
-| 1.5B, 24 GB GPU bf16 | 0.03 s | 0.08 s | 0.02 s |
-| 7B, 24 GB GPU bf16 | 0.08 s | 0.25 s | 0.06 s |
-| 14B, 24 GB GPU bf16 | 0.15 s | 0.5 s | 0.12 s |
-| 32B / 72B, 80 GB GPU int4 | 0.4 / 0.9 s | 1.5 / 3 s | 0.3 / 0.7 s |
+| 135M to 600M | 0.05 to 0.1 s | 0.3 to 0.5 s | 2 to 3 s |
+| 1.5B to 1.7B | 0.1 to 0.2 s | 0.5 to 0.8 s | 3 to 5 s |
+| 3B to 4B | 0.3 s | 1 to 1.5 s | 6 to 10 s |
+| 7B to 8B | 0.6 to 1 s | 1.5 to 2.5 s | 10 to 15 s |
 
-Chain-of-thought (`max_new_tokens: 256`) is roughly 10x `prompt_generate`; thinking mode with
-`max_new_tokens: 2048` can be 50x. Budget those cells explicitly.
+Decisions per model and method in the main sweep are about 17,000 (bandit 5,000; contextual bandit 3,000; loan 2,000;
+gridworld about 800; tic-tac-toe about 1,200; blackjack about 2,800; support 2,000).
 
-LoRA: 100 training episodes yield 1000-5000 examples per environment; two epochs at batch 8 take
-2-10 minutes on a GPU for 7B (QLoRA for int4 models), under a minute for sub-1B models.
+| Stage | Config | Rough laptop time |
+|---|---|---|
+| Pilot | `configs/pilot.yaml` | 3 to 6 hours |
+| Main sweep (28 checkpoints, 4 methods) | `configs/mac_main.yaml` | 150 to 200 hours, i.e. two to three weeks of overnight runs |
+| LoRA (24 checkpoints to 4B) | `configs/mac_lora.yaml` | 50 to 80 hours |
+| Free replies (12 checkpoints, 4 tasks, 50 episodes) | `configs/mac_free_reply.yaml` | 30 to 40 hours |
+| Controls (Pythia to 2.8B, OLMo 2 to 7B) | `configs/mac_controls.yaml` | about 30 hours |
+| Ablations (five blocks plus the LoRA companion, 50 episodes) | `configs/ablations/*.yaml` | about 100 hours in total |
+| Quantisation block (llama.cpp servers) | `configs/ablations/quantisation.yaml` | about 15 hours |
+| Decision models (local) | `configs/decision_models.yaml` | about 10 hours |
 
-Sweep (`configs/sweep_gpu.yaml`, 33 model entries, 6 methods): about 150 GPU-hours on one 80 GB
-GPU. The control ladders (`configs/sweep_controls.yaml`) add about 60. The five ablation blocks in
-`configs/ablations/` are 150-200 cells each; together they are of the same order as the sweep, and
-each can be run and reported on its own. Check any edit with `deadeye estimate <config>`. The CPU pilot (`configs/pilot_cpu.yaml`) is 6-12 hours on a
-laptop, or 25 minutes for the 135M model alone.
-
-Memory: bf16 needs ~2 bytes/parameter plus KV cache (prompts are short); int4 ~0.6 bytes/parameter.
+Everything is resumable, and `scripts/run_mac.sh` runs the stages in order while keeping the Mac awake. Memory: 16-bit
+weights need about 2 bytes per parameter, so an 8B model takes about 16 GB plus a few GB of working memory; close other
+applications while the 7B and 8B rungs run.

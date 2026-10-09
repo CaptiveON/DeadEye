@@ -1,14 +1,11 @@
-# Comparison with "System One" decision models: TypeSafe's hosted Jev and the open-weight Jev-compatible models
-# (Kev, Cloudflare Clef). They speak one protocol: state + typed questions in, probabilities over allowed answers
-# out. DeadEye sends the task description and observation as the state and the legal actions as the choice
-# criteria, and scores them like every other method, so the comparison is on identical tasks, seeds and metrics.
-#
-# Access: Jev needs TYPESAFE_API_KEY (early access); Kev runs locally
-#   (`uv run --extra serve python -m kev.serve --run jaredpalmer/kev-9b --port 8009`, see github.com/jaredpalmer/kev);
-#   Clef runs on Workers AI (CLOUDFLARE_ACCOUNT_ID in the URL, CLOUDFLARE_API_TOKEN) or from the Apache-2.0 weights.
-# The open-weight rows use the Hugging Face backend on the same Qwen bases the decision models were built from,
-# converted by DeadEye's own methods, which gives the controlled part of the comparison.
-# This comparison is exploratory (not pre-registered): the hosted model's training data is unknown.
+# Comparison with decision models that run on the laptop (RQ5, exploratory): Kev 0.8B and 4B through Kev's local server,
+# Laya through its package, SemIf on Qwen3.5-4B, against our own conversions of the same Qwen3.5 bases. The Qwen2.5 and
+# Qwen3 rows come from results/mac_main at report time:
+#   deadeye report results/mac_main results/mac_lora results/decision_models --out report/comparison
+# Servers: Kev   uv run --extra serve python -m kev.serve --run jaredpalmer/kev-0.8b --port 8009   (and kev-4b on 8010)
+#          Laya  its Python package; if its HTTP schema differs from the System One protocol, add the adapter noted in
+#                src/deadeye/models/decision_api.py.    SemIf: its server, or rely on the score_letter row (same readout).
+# The hosted decision models (Clef, Clef-flash, Perplexity's decider, Jev) and Kev 9B/27B are future work.
 name: decision_models
 output_dir: results/decision_models
 seeds: {start: 0, n: 100}
@@ -22,29 +19,17 @@ envs:
   - {name: blackjack, params: {hands_per_episode: 20}, n_episodes: 100}
   - {name: support, params: {n_tickets: 20}}
 models:
-  # hosted, closed weights
-  - {backend: decision, id: jev, base_url: "https://api.typesafe.ai/v1/systemone", api_key_env: TYPESAFE_API_KEY, family: jev, label: jev}
-  # open weights, Jev-compatible protocol (local server or Workers AI)
   - {backend: decision, id: kev-latest, base_url: "http://127.0.0.1:8009/v1/systemone", params: 800000000, family: kev, label: kev-0.8b}
   - {backend: decision, id: kev-latest, base_url: "http://127.0.0.1:8010/v1/systemone", params: 4000000000, family: kev, label: kev-4b}
-  - {backend: decision, id: kev-latest, base_url: "http://127.0.0.1:8011/v1/systemone", params: 9000000000, family: kev, label: kev-9b}
-  - {backend: decision, id: "@cf/cloudflare/clef-flash", base_url: "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/ai/run/@cf/cloudflare/clef-flash", api_key_env: CLOUDFLARE_API_TOKEN, params: 9000000000, family: clef, label: clef-flash}
-  - {backend: decision, id: "@cf/cloudflare/clef", base_url: "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/ai/run/@cf/cloudflare/clef", api_key_env: CLOUDFLARE_API_TOKEN, params: 27000000000, family: clef, label: clef}
-  # Laya (Convai Innovations, Apache-2.0): ModernBERT-large / mmBERT-base encoders with a decision head, 322M-421M.
-  # Served from its Python package; if its HTTP schema differs from the System One protocol, add an adapter
-  # (see deadeye/models/decision_api.py) before running.
   - {backend: decision, id: laya-typed-decisions, base_url: "http://127.0.0.1:8020/v1/systemone", params: 421000000, family: laya, label: laya-typed-decisions}
   - {backend: decision, id: laya, base_url: "http://127.0.0.1:8021/v1/systemone", params: 421000000, family: laya, label: laya}
-  # SemIf (MIT code): option-logit readout over frozen open weights, no training. Its reference server on Qwen3.5-4B;
-  # the same readout is reproduced below by score_letter on the same checkpoint, which doubles as a validation.
   - {backend: decision, id: semif-qwen3.5-4b, base_url: "http://127.0.0.1:8030/v1/systemone", params: 4000000000, family: semif, label: semif-qwen3.5-4b}
-  # the same open bases, converted by DeadEye's methods (repo ids to be confirmed against the hub before running)
+  # our conversions of the bases the decision models are built on (confirm the repo ids on the hub before running)
   - {backend: hf, id: Qwen/Qwen3.5-0.8B-Base, params: 800000000, family: qwen3.5, instruct: false}
   - {backend: hf, id: Qwen/Qwen3.5-4B-Base, params: 4000000000, family: qwen3.5, instruct: false}
-  - {backend: hf, id: Qwen/Qwen3.5-9B-Base, params: 9000000000, family: qwen3.5, instruct: false}
 methods:
-  - {name: prompt_score}                                                    # the only method a decision model supports
-  - {name: prompt_score, params: {action_format: letter}, label: score_letter}   # SemIf-style option-logit readout on our side
-  - {name: probe, params: {layer: mid, n_train_episodes: 100}}             # skipped automatically for API models
-  - {name: lora_sft, params: {n_train_episodes: 100, infer: score, lora: {r: 16, alpha: 32, epochs: 2, lr: 0.0002, batch_size: 8}}}
+  - {name: prompt_score}
+  - {name: prompt_score, params: {action_format: letter}, label: score_letter}
+  - {name: probe, params: {layer: mid, n_train_episodes: 100}}
+  - {name: lora_sft, params: {n_train_episodes: 40, max_train_states: 3000, infer: score, lora: {r: 16, alpha: 32, epochs: 2, lr: 0.0002, batch_size: 8}}}
 baselines: [random, oracle, ucb1]

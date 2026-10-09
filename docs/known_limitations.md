@@ -4,6 +4,19 @@ Found during the adversarial review of the harness; kept here so the paper's lim
 and the pre-registration stay honest. Items marked *decision* are deliberate and documented rather
 than bugs.
 
+## Hardware and scope
+
+- **One laptop.** Everything runs on an Apple M2 Max with 32 GB through PyTorch's Metal backend at 16-bit
+  precision. Weight-level methods (exact scoring, probes, LoRA) stop at about 8B parameters and LoRA at 4B;
+  the larger rungs and every hosted system are future work (`docs/future_work.md`). Latencies are comparable
+  within this machine and runtime only; Metal through PyTorch is slower than MLX or llama.cpp.
+- **Quantisation across runtimes.** The quantisation block compares 16-bit weights in PyTorch with GGUF Q8_0
+  and Q4_K_M in llama.cpp, so it varies the runtime as well as the precision, and only generation and
+  first-token scoring apply. *Decision*, forced by the absence of CUDA.
+- **Metal was not exercised here.** The backend's device selection is unit-tested, but the sandbox that built
+  the harness had no Apple hardware; the pilot is the first real run on Metal, and `dtype: float16` or
+  `device: cpu` are the fallbacks if bfloat16 misbehaves.
+
 ## Environments
 
 - **Tic-tac-toe oracle.** Against the random opponent the oracle is expectimax (the policy that

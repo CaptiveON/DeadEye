@@ -19,113 +19,117 @@ exists today, what is still missing, and the order in which to do the remaining 
 
 - **No real model has been evaluated.** The sandbox in which this was built had no GPU and no access to
   Hugging Face, so every experiment ran only on a mock model and a tiny randomly initialised model, which
-  prove the pipeline works and nothing else.
+  prove the pipeline works and nothing else. The Metal backend was added for your Mac but could not be
+  exercised here; the first thing the pilot will tell you is whether it loads and runs, and the fallback is
+  `dtype: float16` or `device: cpu` in the config.
 - **Every number in the paper's results is a placeholder.** Placeholders are the blue `\result{...}` marks
   (127 of them) and the red `\todo{...}` notes (23). The draft PDF prints them in colour so none can be missed.
 - **The pre-registration is not frozen** (`docs/preregistration.md` still has blanks for the pilot's standard
   deviations), and nothing has been tagged.
-- **Two systems need a small adapter** before they can be scored: Laya's package and Perplexity's Decisions
-  API use their own request schema; Kev and Clef speak the protocol already implemented.
+- **Laya may need a small adapter** before it can be scored if its HTTP schema differs from the System One
+  protocol; Kev speaks the protocol already implemented, and SemIf is reproduced by the letter-scoring row.
 - **Two small source checks** remain: the TechCrunch bylines in the bibliography, and the Qwen3.5 repository
   ids in `configs/decision_models.yaml`, which must be confirmed on the Hugging Face hub.
+- **Everything the laptop cannot run is listed in `docs/future_work.md`** and in the paper's future-work
+  section: the 14B to 72B rungs, the hosted decision models, long thinking budgets, and more.
 
 ## What to do, in order
 
-Each step says what you need, what to run, how long it takes, and what you should see.
+Each step says what you need, what to run, how long it takes, and what you should see. Everything runs on your
+Mac; no GPU rental is needed, and none of these commands uses Claude or any paid service.
 
-### Step 1. Get a machine and install (half a day)
-
-You need a Linux machine with an NVIDIA GPU. One 24 GB card (for example an RTX 4090 or L4) handles every
-model up to 14B parameters; the 27B to 72B rows need an 80 GB card (A100 or H100) or 4-bit loading. Cloud
-rental is fine. Then:
+### Step 1. Install on the Mac (one hour)
 
 ```bash
 git clone https://github.com/CaptiveON/DeadEye && cd DeadEye
-python -m venv .venv && source .venv/bin/activate
-pip install torch --index-url https://download.pytorch.org/whl/cu124    # pick the CUDA build for your driver
-pip install -e ".[hf,quant,dev]" tabulate
-pytest -q && deadeye smoke
-huggingface-cli login            # needed for gated repositories (Llama, Gemma)
+python3 -m venv .venv && source .venv/bin/activate
+pip install torch                      # the default macOS wheel includes the Metal (MPS) backend
+pip install -e ".[hf,dev]" tabulate
+pytest -q && deadeye smoke             # about five minutes; all tests pass, a smoke report is written
+huggingface-cli login                  # free account; needed for the gated Gemma 3 repositories
+python -c "import torch; print(torch.backends.mps.is_available())"   # must print True
 ```
 
-You should see all tests pass and a smoke-test report in a temporary folder.
+Accept the Gemma licence on the Hugging Face page of `google/gemma-3-270m` once; the other families are open.
 
-### Step 2. Run the pilot (a few hours on a GPU; a day on a laptop CPU)
+### Step 2. Run the pilot (3 to 6 hours)
 
 ```bash
-deadeye run configs/pilot_cpu.yaml
-deadeye report results/pilot_cpu --out report/pilot_cpu
+scripts/run_mac.sh pilot
+deadeye report results/pilot --out report/pilot
 ```
 
-Open `report/pilot_cpu/index.html`. Check three things: the `random` row scores 0 and `oracle` scores 1 on
-every task; the illegal-action rate under `prompt_generate` is below about 20% for the instruct models
-(if it is much higher, read the raw outputs in `steps.jsonl` and fix the prompt wording in
-`src/deadeye/policies/prompts.py`); and the probe's training accuracy in `summary.json` is well above chance.
-Prompts may be edited only during this step.
+Open `report/pilot/index.html`. Check: `random` scores 0 and `oracle` 1 on every task; the illegal-action rate
+under `prompt_generate` is below about 20% for the instruct models (if not, read the raw outputs in `steps.jsonl`
+and fix the wording in `src/deadeye/policies/prompts.py`); the probe's `train_acc` in `summary.json` is well
+above chance. Note the measured `latency_per_decision_s` per model size and re-estimate the sweep with
+`deadeye estimate configs/mac_main.yaml --seconds-per-decision <value>`. Prompts may be edited only now.
 
 ### Step 3. Freeze the design (one hour)
 
-Fill in the per-task standard deviations in section 5 of `docs/preregistration.md` from
-`report/pilot_cpu/episodes.csv` (the standard deviation of the paired differences of `norm` between two
-methods on the same seeds), then:
+Fill in the per-task standard deviations in section 5 of `docs/preregistration.md` from `report/pilot/episodes.csv`
+(the standard deviation of the paired differences of `norm` between two methods on the same seeds), then:
 
 ```bash
 git add -A && git commit -m "Freeze pre-registration" && git tag prereg-v1 && git push --tags
 ```
 
-Optionally register the same document on OSF (osf.io) for a timestamp outside your repository.
-
-### Step 4. Run the main sweep (about 150 GPU-hours on one 80 GB card; 2 to 4 days on 2 to 4 cards)
+### Step 4. Run the main sweep (two to three weeks of overnight runs)
 
 ```bash
-deadeye estimate configs/sweep_gpu.yaml --seconds-per-decision 0.3   # check the budget first
-scripts/run_sweep.sh configs/sweep_gpu.yaml 0 1 2 3                   # one process per GPU id
-deadeye run configs/sweep_controls.yaml                               # Pythia and OLMo 2 (about 60 GPU-hours)
+scripts/run_mac.sh main
 ```
 
-Runs are resumable: if a machine stops, run the same command again and finished cells are skipped. Watch
-`results/sweep_gpu/run_manifest.json` for the cell list and `logs_*.txt` for errors.
+The ladders run in the order Qwen2.5, Qwen3, SmolLM2, Gemma 3, so a stopped run still leaves complete ladders.
+Rerun the same command after any interruption; finished cells are skipped. `logs/mac_main.log` has the progress
+line of every cell, and `results/mac_main/run_manifest.json` the full cell list.
 
-### Step 5. Run the ablation blocks (about the same again; each block can run alone)
+### Step 5. LoRA, free replies, controls (one to two weeks of overnight runs)
 
 ```bash
-for b in quantisation prompting thinking adaptation tasks; do deadeye run configs/ablations/$b.yaml; done
+scripts/run_mac.sh lora
+scripts/run_mac.sh free
+scripts/run_mac.sh controls     # optional; Pythia and OLMo 2
 ```
 
-### Step 6. Run the decision-model comparison (one to two days, mostly waiting on servers)
-
-- Kev: install from github.com/jaredpalmer/kev and start one server per size on ports 8009, 8010, 8011
-  as written in `configs/decision_models.yaml`.
-- Clef: set `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN`; Workers AI bills per request.
-- Jev: apply for early access at typesafe.ai and set `TYPESAFE_API_KEY`; if access is not granted, leave the
-  row out and say so in the paper.
-- Laya and Perplexity: write the adapter (copy `src/deadeye/models/decision_api.py`, change the request and
-  response field names to match their documentation, register it in `src/deadeye/models/registry.py`).
-- SemIf: run its server, or rely on the `score_letter` row, which is the same computation.
-- Confirm the three Qwen3.5 base repository ids on the hub and correct them in the config if needed.
+### Step 6. Ablations (about a week)
 
 ```bash
-deadeye run configs/decision_models.yaml
+scripts/run_mac.sh ablations    # prompting, reasoning, adaptation, tasks, tasks_lora
+brew install llama.cpp          # for the quantisation block; download the Q8_0 and Q4_K_M GGUF files of
+                                # Qwen2.5-Instruct 1.5B, 3B, 7B, start one llama-server per file on the ports in
+                                # configs/ablations/quantisation.yaml, then:
+scripts/run_mac.sh quant
 ```
 
-### Step 7. Generate every table and figure (minutes)
+### Step 7. Decision models (a day)
+
+Install Kev (github.com/jaredpalmer/kev) and start its server for the 0.8B and 4B checkpoints on ports 8009 and
+8010; install Laya's package and SemIf as their repositories describe; confirm the two Qwen3.5 base repository
+ids on the hub and correct them in the config if needed. If Laya's HTTP schema differs from the System One
+protocol, add the small adapter noted in `src/deadeye/models/decision_api.py`. Then:
 
 ```bash
-deadeye report results/sweep_gpu results/sweep_controls results/ablations results/decision_models \
-  --out report/paper --paper-dir paper
+scripts/run_mac.sh decision
 ```
 
-This writes `paper/tables/*.tex` and `paper/figures/*.pdf`; the paper includes them automatically.
-`report/paper/cells.csv`, `slopes.csv`, `pairwise_methods.csv` and `system_comparison.csv` hold every number.
+### Step 8. Generate every table and figure (minutes)
 
-### Step 8. Fill the results (two to three days of careful work)
+```bash
+deadeye report results/mac_main results/mac_lora results/mac_free_reply results/mac_controls \
+  results/ablations results/decision_models --out report/paper --paper-dir paper
+```
 
-Work through `paper/sections/results.tex`, `analysis.tex`, `abstract.tex`, `introduction.tex` and
-`conclusion.tex`. Replace each `\result{...}` with the measured value and its confidence interval, taken
-from the CSV files, and delete each `\todo{...}` once it is handled. For the paired tests, run one
-`deadeye compare` call per hypothesis family (the pre-registration lists them) and quote the Holm-adjusted
-p-values. Then check the pre-registered criteria one by one and write "supported" or "falsified"; a
-falsified hypothesis is a result, not a failure.
+`report/paper/cells.csv`, `slopes.csv`, `pairwise_methods.csv` and `system_comparison.csv` hold every number the
+paper quotes; `paper/tables/*.tex` and `paper/figures/*.pdf` are included by the paper automatically.
+
+### Step 9. Fill the results (two to three days of careful work)
+
+Work through `paper/sections/results.tex`, `analysis.tex`, `abstract.tex`, `introduction.tex` and `conclusion.tex`.
+Replace each `\result{...}` with the measured value and its confidence interval from the CSV files, delete each
+`\todo{...}` once handled, run one `deadeye compare` call per hypothesis family and quote the Holm-adjusted
+p-values, then write "supported" or "falsified" against each pre-registered criterion. A falsified hypothesis
+is a result.
 
 ```bash
 grep -c '\\result{' paper/sections/*.tex    # must reach 0
@@ -133,18 +137,12 @@ grep -c '\\todo{' paper/sections/*.tex      # must reach 0
 python scripts/check_tex.py                 # braces, environments, citation keys
 ```
 
-### Step 9. Final source checks (one hour)
+### Step 10. Final checks, PDF, submission (a day)
 
-Open the TechCrunch articles and add the journalists' names to `paper/refs.bib`; open each model card
-cited in the decision-model table and confirm the sizes and licences still match; re-run
-`python scripts/check_tex.py`.
-
-### Step 10. Build the PDF and submit
-
-With a TeX installation: `cd paper && make`. Without one: `python scripts/build_draft_pdf.py` builds the
-same content through pandoc and Chromium. Archive the `results/` folder and the report with a DOI
-(Zenodo), tag the repository `v1.0`, and submit (arXiv first, then the venue). The reproducibility
-checklist in the appendix is written for this moment.
+Add the TechCrunch bylines to `paper/refs.bib`; reopen each model card cited in the decision-model table and
+confirm sizes and licences; rerun `python scripts/check_tex.py`. Build the PDF with `cd paper && make` (TeX) or
+`python scripts/build_draft_pdf.py` (no TeX needed). Archive `results/` and `report/` with a DOI (Zenodo), tag
+`v1.0`, submit to arXiv and then the venue.
 
 ## Honest expectations
 

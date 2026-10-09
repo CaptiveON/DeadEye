@@ -1,0 +1,31 @@
+# Phase 1 pilot on the laptop (Apple M2 Max, Metal backend; also fine on CPU or any GPU). Shortened horizons and six
+# small checkpoints keep it to a few hours. Prompts may be edited only while this phase runs.
+# Run:  deadeye run configs/pilot.yaml            (resumable; add --only-model <id> to run one model at a time)
+# Then: deadeye report results/pilot --out report/pilot
+name: pilot
+output_dir: results/pilot
+seeds: {start: 5000, n: 20}          # disjoint from the confirmatory seeds 0-999 used by the sweep
+train_seeds: {start: 100000, n: 40}
+illegal_action: random_fallback
+envs:
+  - {name: bandit, params: {n_arms: 5, horizon: 30, gap: 0.2}}
+  - {name: contextual_bandit, params: {n_actions: 3, dim: 4, horizon: 20}}
+  - {name: loan, params: {n_applicants: 10}}
+  - {name: gridworld, params: {size: 5}}
+  - {name: tictactoe, params: {opponent: random}}
+  - {name: blackjack, params: {hands_per_episode: 10}, n_episodes: 20}
+  - {name: support, params: {n_tickets: 10}}
+models:   # dtype auto = bfloat16 on Metal where supported, else float16
+  - {backend: hf, id: HuggingFaceTB/SmolLM2-135M-Instruct}
+  - {backend: hf, id: HuggingFaceTB/SmolLM2-360M-Instruct}
+  - {backend: hf, id: HuggingFaceTB/SmolLM2-360M}                 # base counterpart (H2)
+  - {backend: hf, id: Qwen/Qwen2.5-0.5B-Instruct}
+  - {backend: hf, id: Qwen/Qwen2.5-0.5B}                          # base counterpart (H2)
+  - {backend: hf, id: Qwen/Qwen3-0.6B, chat_template_kwargs: {enable_thinking: false}}
+methods:
+  - {name: prompt_free, params: {max_new_tokens: 96}}      # the unconverted assistant: free reply, action extracted if any
+  - {name: prompt_generate, params: {max_new_tokens: 16}}
+  - {name: prompt_score}
+  - {name: probe, params: {layer: mid, n_train_episodes: 40}}
+  - {name: feature_probe, params: {n_train_episodes: 40}}
+baselines: [random, oracle, ucb1]

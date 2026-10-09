@@ -21,6 +21,31 @@ log = logging.getLogger(__name__)
 _DTYPES = {"float32": "float32", "fp32": "float32", "bfloat16": "bfloat16", "bf16": "bfloat16", "float16": "float16", "fp16": "float16"}
 
 
+def select_device(device: str, torch) -> str:
+    """'auto' -> CUDA if present, else Apple's Metal backend (MPS) if present, else CPU."""
+    if device != "auto":
+        return device
+    if torch.cuda.is_available():
+        return "cuda"
+    mps = getattr(torch.backends, "mps", None)
+    if mps is not None and mps.is_available():
+        return "mps"
+    return "cpu"
+
+
+def default_dtype(device: str, torch):
+    """bfloat16 on CUDA; on MPS bfloat16 when the device supports it (macOS 14+ on M2 and later), else float16; float32 on CPU."""
+    if device.startswith("cuda"):
+        return torch.bfloat16
+    if device == "mps":
+        try:
+            (torch.ones(2, dtype=torch.bfloat16, device="mps") * 2).sum().item()
+            return torch.bfloat16
+        except Exception:
+            return torch.float16
+    return torch.float32
+
+
 class HFModel(LanguageModel):
     capabilities = frozenset({"generate", "score", "embed", "train"})
 
@@ -36,12 +61,14 @@ class HFModel(LanguageModel):
         self.use_chat_template = use_chat_template
         self.chat_template_kwargs = dict(chat_template_kwargs or {})
         self.max_length = int(max_length)
-        cuda = torch.cuda.is_available()
-        self.device = ("cuda" if cuda else "cpu") if device == "auto" else device
+        self.device = select_device(device, torch)
         if dtype == "auto":
-            torch_dtype = torch.bfloat16 if self.device.startswith("cuda") else torch.float32
+            torch_dtype = default_dtype(self.device, torch)
         else:
             torch_dtype = getattr(torch, _DTYPES[dtype])
+        if quantization and not self.device.startswith("cuda"):
+            raise ValueError("int4/int8 loading needs CUDA (bitsandbytes); on Apple silicon or CPU serve a GGUF quantisation "
+                             "with llama.cpp and use the `openai` backend instead")
         kwargs: dict[str, Any] = {"trust_remote_code": trust_remote_code, "local_files_only": local_files_only}
         if revision:
             kwargs["revision"] = revision
@@ -59,6 +86,7 @@ class HFModel(LanguageModel):
             raise ValueError(f"unknown quantization {quantization!r} (use int4|int8)")
         if self.device.startswith("cuda"):
             kwargs["device_map"] = "auto"
+        self.device_name = self.device
         self.tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=trust_remote_code,
                                                        local_files_only=local_files_only, revision=revision)
         try:
@@ -66,7 +94,7 @@ class HFModel(LanguageModel):
         except TypeError:  # transformers < 4.56 spelled the argument torch_dtype
             self.model = AutoModelForCausalLM.from_pretrained(model_id, torch_dtype=torch_dtype, **kwargs)
         if not self.device.startswith("cuda"):
-            self.model.to(self.device)
+            self.model.to(self.device)  # cpu or mps
         self.model.eval()
         if self.tokenizer.pad_token_id is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
@@ -194,5 +222,8 @@ class HFModel(LanguageModel):
             gc.collect()  # accelerate dispatch hooks form reference cycles; free the weights before empty_cache()
             if self.torch.cuda.is_available():
                 self.torch.cuda.empty_cache()
+            mps = getattr(self.torch, "mps", None)
+            if self.device == "mps" and mps is not None:
+                mps.empty_cache()
         except Exception:
             pass

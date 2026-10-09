@@ -1,0 +1,29 @@
+# The "before conversion" condition: the assistant's free reply (96 new tokens), parsed for an action if it contains
+# one. Generation is the slow part on a laptop, so this runs the 12 instruct / post-trained checkpoints on four tasks
+# with 50 episodes.   caffeinate -i deadeye run configs/mac_free_reply.yaml
+name: mac_free_reply
+output_dir: results/mac_free_reply
+seeds: {start: 0, n: 50}
+train_seeds: {start: 100000, n: 100}
+envs:
+  - {name: loan, params: {n_applicants: 20}}
+  - {name: support, params: {n_tickets: 20}}
+  - {name: gridworld, params: {size: 6}}
+  - {name: tictactoe, params: {opponent: random}, n_episodes: 150}
+models:
+  - {backend: hf, id: Qwen/Qwen2.5-0.5B-Instruct}
+  - {backend: hf, id: Qwen/Qwen2.5-1.5B-Instruct}
+  - {backend: hf, id: Qwen/Qwen2.5-3B-Instruct}
+  - {backend: hf, id: Qwen/Qwen2.5-7B-Instruct}
+  - {backend: hf, id: Qwen/Qwen3-0.6B, chat_template_kwargs: {enable_thinking: false}}
+  - {backend: hf, id: Qwen/Qwen3-1.7B, chat_template_kwargs: {enable_thinking: false}}
+  - {backend: hf, id: Qwen/Qwen3-4B, chat_template_kwargs: {enable_thinking: false}}
+  - {backend: hf, id: Qwen/Qwen3-8B, chat_template_kwargs: {enable_thinking: false}}
+  - {backend: hf, id: HuggingFaceTB/SmolLM2-360M-Instruct}
+  - {backend: hf, id: HuggingFaceTB/SmolLM2-1.7B-Instruct}
+  - {backend: hf, id: google/gemma-3-1b-it}
+  - {backend: hf, id: google/gemma-3-4b-it}
+methods:
+  - {name: prompt_free, params: {max_new_tokens: 96}}
+  - {name: prompt_generate, params: {max_new_tokens: 16}}       # same seeds, for the before/after pairing
+baselines: [random, oracle]

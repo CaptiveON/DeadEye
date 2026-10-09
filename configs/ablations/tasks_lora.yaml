@@ -1,0 +1,20 @@
+# Companion to tasks.yaml: LoRA (40 episodes) on the two smaller rungs for the task-structure variants, including the
+# out-of-distribution loan tasks where it is trained on the unshifted task (train_params).
+name: ablations_tasks_lora
+output_dir: results/ablations/tasks_lora
+seeds: {start: 0, n: 50}
+train_seeds: {start: 100000, n: 100}
+envs:
+  - {name: loan, params: {n_applicants: 20}}
+  - {name: loan, params: {n_applicants: 20, shift: covariate}, train_params: {n_applicants: 20, shift: none}, label: loan_covariate_shift}
+  - {name: loan, params: {n_applicants: 20, shift: sign_flip}, train_params: {n_applicants: 20, shift: none}, label: loan_sign_flip}
+  - {name: bandit, params: {n_arms: 10, horizon: 100, gap: 0.2}, label: bandit_hard}
+  - {name: gridworld, params: {size: 9, n_walls: 16}, label: gridworld_large}
+  - {name: tictactoe, params: {opponent: minimax}, n_episodes: 150, label: tictactoe_minimax}
+  - {name: support, params: {n_tickets: 40}, label: support_long}
+models:
+  - {backend: hf, id: Qwen/Qwen2.5-1.5B-Instruct}
+  - {backend: hf, id: Qwen/Qwen2.5-3B-Instruct}
+methods:
+  - {name: lora_sft, params: {n_train_episodes: 40, max_train_states: 3000, lora: {r: 16, alpha: 32, epochs: 2}}}
+baselines: [random, oracle]

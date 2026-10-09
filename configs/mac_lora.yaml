@@ -1,0 +1,43 @@
+# LoRA behaviour cloning on the laptop: the 24 checkpoints of at most 4B parameters (the 7B/8B rungs are future work).
+# 40 training episodes capped at 3000 states keep each cell to one to three hours. Run after mac_main.
+#   caffeinate -i deadeye run configs/mac_lora.yaml
+name: mac_lora
+output_dir: results/mac_lora
+seeds: {start: 0, n: 100}
+train_seeds: {start: 100000, n: 100}
+envs:
+  - {name: bandit, params: {n_arms: 5, horizon: 50, gap: 0.2}}
+  - {name: contextual_bandit, params: {n_actions: 3, dim: 4, horizon: 30}}
+  - {name: loan, params: {n_applicants: 20}}
+  - {name: gridworld, params: {size: 6}}
+  - {name: tictactoe, params: {opponent: random}, n_episodes: 300}
+  - {name: blackjack, params: {hands_per_episode: 20}, n_episodes: 100}
+  - {name: support, params: {n_tickets: 20}}
+models:
+  # --- Qwen2.5 (run first: four rungs, base + instruct) ---
+  - {backend: hf, id: Qwen/Qwen2.5-0.5B}
+  - {backend: hf, id: Qwen/Qwen2.5-0.5B-Instruct}
+  - {backend: hf, id: Qwen/Qwen2.5-1.5B}
+  - {backend: hf, id: Qwen/Qwen2.5-1.5B-Instruct}
+  - {backend: hf, id: Qwen/Qwen2.5-3B}
+  - {backend: hf, id: Qwen/Qwen2.5-3B-Instruct}
+  # --- Qwen3 (base + post-trained with thinking off) ---
+  - {backend: hf, id: Qwen/Qwen3-0.6B-Base}
+  - {backend: hf, id: Qwen/Qwen3-0.6B, chat_template_kwargs: {enable_thinking: false}}
+  - {backend: hf, id: Qwen/Qwen3-4B-Base}
+  - {backend: hf, id: Qwen/Qwen3-4B, chat_template_kwargs: {enable_thinking: false}}
+  # --- SmolLM2 ---
+  - {backend: hf, id: HuggingFaceTB/SmolLM2-135M}
+  - {backend: hf, id: HuggingFaceTB/SmolLM2-135M-Instruct}
+  - {backend: hf, id: HuggingFaceTB/SmolLM2-360M}
+  - {backend: hf, id: HuggingFaceTB/SmolLM2-360M-Instruct}
+  # --- Gemma 3 (gated: accept the licence on the hub and log in) ---
+  - {backend: hf, id: google/gemma-3-270m}
+  - {backend: hf, id: google/gemma-3-270m-it}
+  - {backend: hf, id: google/gemma-3-1b-pt}
+  - {backend: hf, id: google/gemma-3-1b-it}
+  - {backend: hf, id: google/gemma-3-4b-pt}
+  - {backend: hf, id: google/gemma-3-4b-it}
+methods:
+  - {name: lora_sft, params: {n_train_episodes: 40, max_train_states: 3000, infer: score, lora: {r: 16, alpha: 32, epochs: 2, lr: 0.0002, batch_size: 8}}}
+baselines: [random, oracle]

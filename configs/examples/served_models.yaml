@@ -1,4 +1,4 @@
-# Evaluate models served through any OpenAI-compatible endpoint (vLLM, llama.cpp server, Ollama, LM Studio, OpenRouter).
+# EXAMPLE ONLY (not part of the study): evaluate models served through any OpenAI-compatible endpoint (vLLM, llama.cpp server, Ollama, LM Studio, OpenRouter).
 # No GPU needed in the evaluation process. Set OPENAI_API_KEY (or api_key_env) if the server requires a key.
 # First-token scoring works best with `action_format: letter`; probes/LoRA need the local hf backend.
 name: served
